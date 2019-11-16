@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class Resize(tf.keras.layers.Layer):
     def __init__(self, h, w, **kwargs):
-        super().__init__(**kwargs)
+        super(Resize, self).__init__(**kwargs)
         self.target_shape = tf.constant([h, w])
 
     def call(self, inputs, **kwargs):
@@ -12,7 +12,7 @@ class Resize(tf.keras.layers.Layer):
 
 class GateConv(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(GateConv, self).__init__(**kwargs)
         self.batch_norm_1 = tf.keras.layers.BatchNormalization()
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
@@ -35,11 +35,10 @@ class GateConv(tf.keras.layers.Layer):
 
 
 class GatedShapeConv(tf.keras.layers.Layer):
-    def __init__(self):
-        super().__init__(self,)
+    def __init__(self, **kwargs):
+        super(GatedShapeConv, self).__init__(**kwargs)
         self.conv_1 = None
         self.gated_conv = GateConv()
-        self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
         feature_channels = input_shape[0][-1]
@@ -54,8 +53,8 @@ class GatedShapeConv(tf.keras.layers.Layer):
 
 
 class ResnetPreactUnit(tf.keras.layers.Layer):
-    def __init__(self, depth):
-        super().__init__(self, )
+    def __init__(self, depth, **kwargs):
+        super(ResnetPreactUnit, self).__init__(**kwargs)
         self.bn_1 = tf.keras.layers.BatchNormalization()
         self.relu = tf.keras.layers.ReLU()
         self.conv_1 = tf.keras.layers.Conv2D(depth, 3, padding='SAME')
@@ -74,8 +73,8 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
 
 
 class ShapeAttention(tf.keras.layers.Layer):
-    def __init__(self, h, w):
-        super().__init__()
+    def __init__(self, h, w, **kwargs):
+        super(ShapeAttention, self).__init__(**kwargs)
         self.resize = Resize(h, w)
 
         self.gated_conv_1 = GatedShapeConv()
@@ -128,34 +127,34 @@ class ShapeAttention(tf.keras.layers.Layer):
 
 
 class ShapeStream(tf.keras.layers.Layer):
-    def __init__(self, h, w):
-        super().__init__(self, )
+    def __init__(self, h, w, **kwargs):
+        super(ShapeStream, self).__init__(**kwargs)
         self.shape_attention = ShapeAttention(h, w)
         self.reduction_conv = tf.keras.layers.Conv2D(2, 1, use_bias=False)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=False):
-        shape_backbone_activations, image_grimage_edges = x
-        backbone_representation = self.shape_attention(shape_backbone_activations)
-        backbone_representation = tf.concat([backbone_representation, image_grimage_edges], axis=-1)
+        shape_backbone_activations, image_edges = x
+        edge_out = self.shape_attention(shape_backbone_activations)
+        backbone_representation = tf.concat([edge_out, image_edges], axis=-1)
         shape_logits = self.reduction_conv(backbone_representation)
         shape_attention = self.sigmoid(shape_logits)
-        return shape_attention
+        return shape_attention, edge_out
 
 
 class AtrousConvolution(tf.keras.layers.Layer):
-    def __init__(self, rate, **kwargs):
-        super().__init__(self,)
+    def __init__(self, rate, filters, kernel_size, use_bias, activation, **kwargs):
+        super(AtrousConvolution, self).__init__(**kwargs)
         self.pad = tf.keras.layers.ZeroPadding2D((rate, rate))
-        self.convolution = tf.keras.layers.Conv2D(dilation_rate=(rate, rate), **kwargs)
+        self.convolution = tf.keras.layers.Conv2D(filters, kernel_size, activation=activation, use_bias=use_bias, dilation_rate=(rate, rate))
 
-    def call(self, x, **kwargs):
+    def call(self, x, training=False):
         return self.convolution(self.pad(x))
 
 
 class AtrousPyramidPooling(tf.keras.layers.Layer):
-    def __init__(self, out_channels):
-        super().__init__(self, )
+    def __init__(self, out_channels, **kwargs):
+        super(AtrousPyramidPooling, self).__init__(**kwargs)
 
         # for final output of backbone
         self.bn_1 = tf.keras.layers.BatchNormalization()
@@ -227,19 +226,28 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 
 
 class FinalLogitLayer(tf.keras.layers.Layer):
-    def __init__(self, h, w,):
-        super().__init__(self, )
+    def __init__(self, h, w, num_classes, **kwargs):
+        super(FinalLogitLayer, self).__init__(**kwargs)
         self.resize = Resize(h, w)
         self.bn_1 = tf.keras.layers.BatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
         self.bn_2 = tf.keras.layers.BatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
+        self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
     def call(self, x, training=False):
         x = self.bn_1(x, training=training)
         x = self.conv_1(x)
         x = self.bn_2(x, training=training)
         x = self.conv_2(x)
+        x = self.conv_3(x)
         x = self.resize(x)
         return x
+
+
+if __name__ == '__main__':
+    import numpy as np
+    i = tf.keras.layers.Input([None, 1])
+    dense = tf.keras.layers.Dense(1)
+    print(dense.output)
 
