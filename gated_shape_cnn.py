@@ -21,6 +21,18 @@ class InceptionBackbone(tf.keras.Model):
         return self.backbone(inputs, training=training)
 
 
+class Net(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super(Net, self).__init__(**kwargs)
+        self.d1 = tf.keras.layers.Dense(128, activation=tf.nn.relu)
+        self.d2 = tf.keras.layers.Dense(10, activation=0, use_bias=False)
+
+    def call(self, inputs, training=False):
+        x = self.d1(inputs)
+        x = self.d2(x)
+        return x
+
+
 class GSCNN(tf.keras.Model):
     def __init__(self, n_classes, **kwargs):
         super(GSCNN, self).__init__(**kwargs)

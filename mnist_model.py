@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from gated_shape_cnn import GSCNN
-from loss import loss_wrapper, generalised_dice
+from loss import gen_dice
 import matplotlib.pyplot as plt
 
 
@@ -11,14 +11,12 @@ import matplotlib.pyplot as plt
 # Preprocess the data (these are Numpy arrays)
 x_train = x_train.astype('float32') / 255
 x_train = x_train[..., None]
-labels = np.eye(10)
 
 
 def preprocess(xx, yy):
-    xx = tf.image.resize(xx, (75, 75))
+    # xx = tf.image.resize(xx, (75, 75))
     yy = tf.where(xx > 0.1, yy, 10)[..., 0]
     yy = tf.one_hot(yy, 11)
-    xx = tf.image.grayscale_to_rgb(xx)
     return xx - 0.5, yy
 
 
@@ -28,16 +26,16 @@ x_train = x_train[:-1000]
 y_train = y_train[:-1000]
 train_d = tf.data.Dataset.from_tensor_slices((x_train, y_train))
 train_d = train_d.map(preprocess)
-train_d = train_d.batch(2)
+train_d = train_d.repeat(5)
+train_d = train_d.batch(64)
 
 val_d = tf.data.Dataset.from_tensor_slices((x_val, y_val))
 val_d = val_d.map(preprocess)
-val_d = val_d.batch(10)
+val_d = val_d.batch(64)
 
 
 model = GSCNN(n_classes=11)
-
-model.compile(loss=generalised_dice)
+model.compile(loss=gen_dice)
 model.fit(train_d)
 
 

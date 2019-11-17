@@ -1,21 +1,28 @@
 import tensorflow as tf
 
 
-def generalised_dice(gt_tensor, pred_tensor):
-    pred_tensor = tf.math.softmax(pred_tensor)
-    gt_shape = tf.shape(gt_tensor)
-    gt_tensor = tf.reshape(gt_tensor, [-1, gt_shape[1]*gt_shape[2], gt_shape[3]])
-    pred_tensor = tf.reshape(pred_tensor, [-1, gt_shape[1]*gt_shape[2], gt_shape[3]])
+def gen_dice(y_true, y_pred, eps=0.):
+    # [b, h, w, classes]
+    pred_tensor = tf.nn.softmax(y_pred)
+    y_true_shape = tf.shape(y_true)
 
-    counts = tf.reduce_sum(gt_tensor, axis=1)
-    counts = tf.where(counts < 1., tf.ones_like(counts), counts)
+    # [b, h*w, classes]
+    y_true = tf.reshape(y_true, [-1, y_true_shape[1]*y_true_shape[2], y_true_shape[3]])
+    y_pred = tf.reshape(pred_tensor, [-1, y_true_shape[1]*y_true_shape[2], y_true_shape[3]])
+
+    # [b, classes]
+    counts = tf.reduce_sum(y_true, axis=1)
     weights = 1. / (counts ** 2)
+    weights = tf.where(tf.math.is_finite(weights), weights, eps)
 
-    multed = tf.reduce_sum(gt_tensor * pred_tensor, axis=1)
-    summed = tf.reduce_sum(gt_tensor + pred_tensor, axis=1)
+    multed = tf.reduce_sum(y_true * y_pred, axis=1)
+    summed = tf.reduce_sum(y_true + y_pred, axis=1)
+
+    # [b]
     numerators = tf.reduce_sum(weights*multed, axis=-1)
     denom = tf.reduce_sum(weights*summed, axis=-1)
     dices = 1. - 2. * numerators / denom
+    dices = tf.where(tf.math.is_finite(dices), dices, tf.zeros_like(dices))
     return tf.reduce_mean(dices)
 
 
