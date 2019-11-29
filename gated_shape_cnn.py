@@ -82,7 +82,6 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.gated_conv_2 = GatedShapeConv()
         self.gated_conv_3 = GatedShapeConv()
 
-        self.shape_reduction_1 = tf.keras.layers.Conv2D(1, 1)
         self.shape_reduction_2 = tf.keras.layers.Conv2D(1, 1)
         self.shape_reduction_3 = tf.keras.layers.Conv2D(1, 1)
         self.shape_reduction_4 = tf.keras.layers.Conv2D(1, 1)
@@ -100,7 +99,6 @@ class ShapeAttention(tf.keras.layers.Layer):
     def call(self, x, training=False):
         s1, s2, s3, s4 = x
         # todo this resizing can be made better
-        s1 = self.shape_reduction_1(s1)
         s1 = self.resize(s1)
         s2 = self.shape_reduction_2(s2)
         s2 = self.resize(s2)
@@ -286,13 +284,11 @@ class GSCNN(tf.keras.Model):
         self.shape_stream = ShapeStream(image_shape[1], image_shape[2])
         self.logit_layer = FinalLogitLayer(image_shape[1], image_shape[2], self.n_classes)
         self.resize = Resize(image_shape[1], image_shape[2])
-        ndim = len(image_shape)
-        if ndim == 3:
-            self.to_gray_scale = tf.image.rgb_to_grayscale
-        elif ndim == 1:
-            self.to_gray_scale = lambda x: x
+        ndim = image_shape[-1]
+        if ndim != 1:
+            self.to_gray_scale = lambda x: tf.image.rgb_to_grayscale(x[..., :3])
         else:
-            self.to_gray_scale = tf.keras.layers.Conv2D(1, 1, use_bias=False)
+            self.to_gray_scale = lambda x: x
 
     def get_edge_image(self, tensor):
         gray = self.to_gray_scale(tensor)
