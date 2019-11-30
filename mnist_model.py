@@ -6,17 +6,14 @@ import matplotlib.pyplot as plt
 
 
 def build_datasets():
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
+    (x_train, y_train), _ = tf.keras.datasets.mnist.load_data()
     x_train = x_train.astype('float32') / 255
     x_train = x_train[..., None]
-
 
     def preprocess(xx, yy):
         yy = tf.where(xx > 0.1, yy, 10)[..., 0]
         yy = tf.one_hot(yy, 11)
         return xx - 0.5, yy
-
 
     x_val = x_train[-1000:]
     y_val = y_train[-1000:]
@@ -39,7 +36,7 @@ if __name__ == '__main__':
         model,
         train_d,
         val_d,
-        epochs=1,
+        epochs=2,
         optimiser=tf.keras.optimizers.RMSprop(),
         log_dir='logs',
         model_dir='logs/model')

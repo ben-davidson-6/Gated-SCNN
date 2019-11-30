@@ -28,11 +28,6 @@ class Trainer:
             prediction, pred_shape = self.model(x)
             loss = gscnn_loss.loss(y, prediction, pred_shape)
         gradients = tape.gradient(loss, self.model.trainable_variables)
-        for a, v in zip(gradients, self.model.trainable_variables):
-            if not tf.reduce_all(tf.math.is_finite(a)):
-                pprint.pprint(gradients)
-                sys.exit(1)
-                break
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
 
@@ -44,8 +39,7 @@ class Trainer:
             if step%self.log_freq == 0:
                 with self.train_writer.as_default():
                     tf.summary.scalar('batch_loss', loss, step=self.step)
-                print(loss)
-
+                print(loss.numpy())
             self.epoch_train_loss(loss)
         with self.train_writer.as_default():
             tf.summary.scalar('epoch_loss', self.epoch_train_loss.result(), step=epoch)
