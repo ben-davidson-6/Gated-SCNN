@@ -28,15 +28,15 @@ def gen_dice(y_true, y_pred, eps=0.):
 
 def _edge_mag(tensor):
     tensor_edge = tf.image.sobel_edges(tensor)
-    mag = tf.linalg.norm(tensor_edge, axis=-1)
-    mag /= tf.reduce_max(max, axis=-1, keepdims=True)
+    mag = tf.reduce_sum(tensor_edge**2, axis=-1, keepdims=True)
+    mag /= tf.maximum(tf.reduce_max(mag, axis=-1, keepdims=True), 1.)
     return mag
 
 
 def _gumbel_softmax(logits, eps=1e-8, tau=1.):
     g = tf.random.uniform(tf.shape(logits))
     g = -tf.math.log(eps - tf.math.log(g + eps))
-    return tf.math.softmax((logits + g)/tau)
+    return tf.nn.softmax((logits + g)/tau)
 
 
 def segmentation_edge_loss(gt_tensor, pred_tensor, thresh=0.8):
@@ -45,30 +45,36 @@ def segmentation_edge_loss(gt_tensor, pred_tensor, thresh=0.8):
     gt_edges = _edge_mag(gt_tensor)
     pred_edges = _edge_mag(pred_tensor)
 
-    edge_difference = tf.math.abs(gt_edges - pred_edges)
-    contrib_0 = (gt_edges > thresh)*edge_difference
-    contrib_1 = (pred_edges > thresh)*edge_difference
+    gt_edges = tf.reshape(gt_edges, [-1, tf.shape(gt_edges)[-1]])
+    pred_edges = tf.reshape(pred_edges, [-1, tf.shape(gt_edges)[-1]])
 
-    return 0.5*contrib_0 + 0.5*contrib_1
+    edge_difference = tf.abs(gt_edges - pred_edges)
+
+    mask_gt = tf.cast((gt_edges > thresh), tf.float32)
+    contrib_0 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_gt))
+    mask_pred = tf.stop_gradient(tf.cast((pred_edges > thresh), tf.float32))
+    contrib_1 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_pred))
+
+    return tf.reduce_mean(0.5*contrib_0 + 0.5*contrib_1)
 
 
 def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, thresh=0.8):
-    gt_tensor = gt_tensor[pred_shape_tensor > thresh]
-    pred_tensor = pred_tensor[pred_shape_tensor > thresh]
-    return generalised_dice(gt_tensor, pred_tensor)
+    mask = tf.cast(pred_shape_tensor > thresh, tf.float32)
+    gt_tensor *= mask
+    pred_tensor *= mask
+    return gen_dice(gt_tensor, pred_tensor)
 
 
+# @tf.function
 def loss(gt_tensor, pred_tensor, pred_shape_tensor):
-    dice_loss = generalised_dice(gt_tensor, pred_tensor)
+    dice_loss = gen_dice(gt_tensor, pred_tensor)
     seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
     edge_edge = shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor)
+    if not tf.reduce_all(tf.math.is_finite(seg_edge)):
+        seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
     return dice_loss + seg_edge + edge_edge
 
 
-def loss_wrapper(pred_shape_tensor):
-    def f(y_true, y_pred):
-        return loss(y_true, y_pred, pred_shape_tensor)
-    return f
 
 
 

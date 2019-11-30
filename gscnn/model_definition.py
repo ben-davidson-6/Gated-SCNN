@@ -294,7 +294,9 @@ class GSCNN(tf.keras.Model):
         gray = self.to_gray_scale(tensor)
         sobel = tf.image.sobel_edges(gray)
         mag = tf.linalg.norm(sobel, axis=-1)
-        return mag/tf.reduce_max(mag)
+        mag_max = tf.reduce_max(mag, axis=[1, 2], keepdims=True)
+        mag_max = tf.where(tf.abs(mag_max) < 0.0001, 1., mag_max)
+        return mag/mag_max
 
     @tf.function
     def call(self, inputs, training=False):
@@ -321,22 +323,38 @@ class GSCNN(tf.keras.Model):
 class DebugModel(tf.keras.Model):
     def __init__(self, **kwargs):
         super(DebugModel, self).__init__(**kwargs)
-        self.d1 = tf.keras.layers.Conv2D(16, 3, activation=tf.nn.relu)
-        self.d2 = tf.keras.layers.Conv2D(32, 3, activation=tf.nn.relu)
-        self.d4 = tf.keras.layers.Conv2D(11, 3, activation=None, use_bias=False)
+        self.d1 = tf.keras.layers.Conv2D(16, 3, activation=None)
+        self.d2 = tf.keras.layers.MaxPool2D()
+        self.d3 = tf.keras.layers.Conv2D(16, 3, activation=None)
+        self.d4 = tf.keras.layers.MaxPool2D()
+        self.d5 = tf.keras.layers.Conv2D(16, 3, activation=None)
+        self.d6 = tf.keras.layers.MaxPool2D()
+
+        self.d7 = tf.keras.layers.Conv2D(32, 3, activation=tf.nn.relu)
+        self.d8 = tf.keras.layers.Conv2D(11, 3, activation=None, use_bias=False)
 
     @tf.function
     def call(self, inputs, training=False):
         s = tf.image.sobel_edges(inputs)
         s = tf.linalg.norm(s, axis=-1)
-        s /= tf.reduce_max(s, axis=-1, keepdims=True)
+        s /= tf.maximum(tf.reduce_max(s, axis=-1, keepdims=True), 1.)
 
         x = self.d1(inputs)
         x = self.d2(x)
-        x = self.d4(x)
+        a = self.d3(x)
+        x = self.d4(a)
+        x = self.d5(x)
+        x = self.d6(x)
+
+        x = tf.image.resize(x, [28, 28])
+        a = tf.image.resize(a, [28, 28])
+        x = tf.concat([a, x], axis=-1)
+        x = self.d7(x)
+        x = self.d8(x)
         x = tf.image.resize(x, [28, 28])
 
         return x, s
+
 
 if __name__ == '__main__':
     import numpy as np
