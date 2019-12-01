@@ -24,6 +24,7 @@ class Trainer:
         self.model_dir = model_dir
 
     def train_step(self, x, y):
+        self.step += 1
         with tf.GradientTape() as tape:
             prediction, pred_shape = self.model(x)
             loss = gscnn_loss.loss(y, prediction, pred_shape)
@@ -31,19 +32,26 @@ class Trainer:
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
 
-    def train_epoch(self, epoch):
+    def log_batch_loss(self, loss):
+        # update mean loss for epoch
+        self.epoch_train_loss(loss)
 
-        for step, (x, y) in enumerate(self.train_dataset):
-            self.step += 1
-            loss = self.train_step(x, y)
-            if step%self.log_freq == 0:
-                with self.train_writer.as_default():
-                    tf.summary.scalar('batch_loss', loss, step=self.step)
-                print(loss.numpy())
-            self.epoch_train_loss(loss)
+        # update batch loss
+        if self.step % self.log_freq == 0:
+            with self.train_writer.as_default():
+                tf.summary.scalar('batch_loss', loss, step=self.step)
+            print('\r batch loss {}'.format(loss.numpy()), end='')
+
+    def log_epoch_loss(self, epoch):
         with self.train_writer.as_default():
             tf.summary.scalar('epoch_loss', self.epoch_train_loss.result(), step=epoch)
-        self.epoch_train_loss.reset_states()
+        print('\r Epoch loss {}'.format(self.epoch_train_loss.result()))
+
+    def train_epoch(self, epoch):
+        for step, (x, y) in enumerate(self.train_dataset):
+            loss = self.train_step(x, y)
+            self.log_batch_loss(loss)
+        self.log_epoch_loss(epoch)
 
     def val_epoch(self, epoch):
         for step, (x, y) in enumerate(self.train_dataset):
