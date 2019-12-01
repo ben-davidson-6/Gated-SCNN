@@ -50,9 +50,9 @@ def segmentation_edge_loss(gt_tensor, pred_tensor, thresh=0.8):
 
     edge_difference = tf.abs(gt_edges - pred_edges)
 
-    mask_gt = tf.cast((gt_edges > thresh), tf.float32)
+    mask_gt = tf.cast((gt_edges > thresh**2), tf.float32)
     contrib_0 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_gt))
-    mask_pred = tf.stop_gradient(tf.cast((pred_edges > thresh), tf.float32))
+    mask_pred = tf.stop_gradient(tf.cast((pred_edges > thresh**2), tf.float32))
     contrib_1 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_pred))
 
     return tf.reduce_mean(0.5*contrib_0 + 0.5*contrib_1)
