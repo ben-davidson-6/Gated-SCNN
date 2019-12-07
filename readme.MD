@@ -9,4 +9,5 @@ There are some differences between this implementation and the paper:
 - Use generalised dice loss instead of cross entropy
 
 # todo
+- understand tf 2.0 better as I think the custom training is not using prefetching 
 - get a gpu to train on something non-trivial and provide the weights
