@@ -1,8 +1,6 @@
 import tensorflow as tf
 import os
 import gscnn.loss as gscnn_loss
-import pprint
-import sys
 
 
 class Trainer:
@@ -12,7 +10,8 @@ class Trainer:
         self.val_dataset = val_dataset
         self.epochs = epochs
         self.optimiser = optimiser
-        self.step = 0
+        self.step = tf.Variable(0, name='global_step', dtype=tf.int64)
+
         train_log_dir = os.path.join(log_dir, 'train')
         val_log_dir = os.path.join(log_dir, 'val')
         self.train_writer = tf.summary.create_file_writer(train_log_dir)
@@ -24,7 +23,7 @@ class Trainer:
         self.model_dir = model_dir
 
     def train_step(self, x, y):
-        self.step += 1
+        self.step.assign_add(1)
         with tf.GradientTape() as tape:
             prediction, pred_shape = self.model(x)
             loss = gscnn_loss.loss(y, prediction, pred_shape)
@@ -37,22 +36,25 @@ class Trainer:
         self.epoch_train_loss(loss)
 
         # update batch loss
-        if self.step % self.log_freq == 0:
-            with self.train_writer.as_default():
+        with self.train_writer.as_default():
+            if tf.math.mod(self.step, self.log_freq) == 0 or tf.equal(self.step, 1):
                 tf.summary.scalar('batch_loss', loss, step=self.step)
-            print('\r batch loss {}'.format(loss.numpy()), end='')
+                tf.print('step ', self.step, ' batch loss ', loss, )
 
     def log_epoch_loss(self, epoch):
         with self.train_writer.as_default():
-            tf.summary.scalar('epoch_loss', self.epoch_train_loss.result(), step=epoch)
-        print('\r Epoch loss {}'.format(self.epoch_train_loss.result()))
+            tf.summary.scalar('Epoch loss', self.epoch_train_loss.result(), step=epoch)
+        tf.print('----- Epoch loss ------ ', self.epoch_train_loss.result())
 
+    @tf.function
     def train_epoch(self, epoch):
         for step, (x, y) in enumerate(self.train_dataset):
             loss = self.train_step(x, y)
             self.log_batch_loss(loss)
+
         self.log_epoch_loss(epoch)
 
+    @tf.function
     def val_epoch(self, epoch):
         for step, (x, y) in enumerate(self.train_dataset):
             prediction, pred_shape = self.model(x)
@@ -60,11 +62,12 @@ class Trainer:
             self.epoch_val_loss(loss)
 
         with self.val_writer.as_default():
-            tf.summary.scalar('epoch_loss', self.epoch_val_loss.result(), step=epoch)
+            tf.summary.scalar('Epoch loss ', self.epoch_val_loss.result(), step=epoch)
+        tf.print('----- val Epoch loss ------ ', self.epoch_val_loss.result())
         self.epoch_val_loss.reset_states()
 
     def make_weight_path(self, epoch):
-        return os.path.join(self.model_dir, 'epoch_{}_val_loss_{}'.format(epoch, self.epoch_val_loss.result()))
+        return os.path.join(self.model_dir, 'epoch_{}_val_loss_{.3f}'.format(epoch, self.epoch_val_loss.result()))
 
     def train_loop(self):
         for epoch in range(self.epochs):

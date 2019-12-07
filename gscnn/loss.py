@@ -65,14 +65,12 @@ def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, thresh=0.8):
     return gen_dice(gt_tensor, pred_tensor)
 
 
-# @tf.function
+@tf.function
 def loss(gt_tensor, pred_tensor, pred_shape_tensor):
     dice_loss = gen_dice(gt_tensor, pred_tensor)
     seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
     edge_edge = shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor)
-    if not tf.reduce_all(tf.math.is_finite(seg_edge)):
-        seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
-    return dice_loss + seg_edge + edge_edge
+    return dice_loss #+ seg_edge + edge_edge
 
 
 

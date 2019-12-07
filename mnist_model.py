@@ -1,19 +1,21 @@
 import tensorflow as tf
+
 import numpy as np
 from gscnn.model_definition import DebugModel
 from gscnn.train_and_evaluate import Trainer
 import matplotlib.pyplot as plt
 
 
+def preprocess(xx, yy):
+    yy = tf.where(xx > 0.1, yy, 10)[..., 0]
+    yy = tf.one_hot(yy, 11)
+    return xx - 0.5, yy
+
+
 def build_datasets():
     (x_train, y_train), _ = tf.keras.datasets.mnist.load_data()
     x_train = x_train.astype('float32') / 255
     x_train = x_train[..., None]
-
-    def preprocess(xx, yy):
-        yy = tf.where(xx > 0.1, yy, 10)[..., 0]
-        yy = tf.one_hot(yy, 11)
-        return xx - 0.5, yy
 
     x_val = x_train[-1000:]
     y_val = y_train[-1000:]
@@ -29,7 +31,8 @@ def build_datasets():
 
     return train_d, val_d
 
-if __name__ == '__main__':
+
+def train_model():
     train_d, val_d = build_datasets()
     model = DebugModel()
     trainer = Trainer(
@@ -41,11 +44,23 @@ if __name__ == '__main__':
         log_dir='logs',
         model_dir='logs/model')
     trainer.train_loop()
+
+
+def display_model(fpath):
+    train_d, val_d = build_datasets()
+    model = DebugModel()
+    model.load_weights(fpath)
     for x, y in val_d:
         pred, _ = model.predict(x)
         pred = tf.nn.softmax(pred[0])
         plt.imshow(np.argmax(pred, axis=-1))
         plt.show()
+
+
+if __name__ == '__main__':
+    train_model()
+    display_model('./logs/model/epoch_1_val_loss_0.15999653935432434')
+
 
 
 
