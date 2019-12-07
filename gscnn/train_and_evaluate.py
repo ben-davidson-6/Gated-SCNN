@@ -67,7 +67,7 @@ class Trainer:
         self.epoch_val_loss.reset_states()
 
     def make_weight_path(self, epoch):
-        return os.path.join(self.model_dir, 'epoch_{}_val_loss_{.3f}'.format(epoch, self.epoch_val_loss.result()))
+        return os.path.join(self.model_dir, 'epoch_{}_val_loss_{}'.format(epoch, self.epoch_val_loss.result()))
 
     def train_loop(self):
         for epoch in range(self.epochs):

@@ -26,10 +26,11 @@ def gen_dice(y_true, y_pred, eps=0.):
     return tf.reduce_mean(dices)
 
 
-def _edge_mag(tensor):
+def _edge_mag(tensor, eps=1e-8):
     tensor_edge = tf.image.sobel_edges(tensor)
-    mag = tf.reduce_sum(tensor_edge**2, axis=-1, keepdims=True)
-    mag /= tf.maximum(tf.reduce_max(mag, axis=-1, keepdims=True), 1.)
+    mag = tf.reduce_sum(tensor_edge**2, axis=-1) + eps
+    mag = tf.math.sqrt(mag)
+    mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
     return mag
 
 
@@ -70,7 +71,7 @@ def loss(gt_tensor, pred_tensor, pred_shape_tensor):
     dice_loss = gen_dice(gt_tensor, pred_tensor)
     seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
     edge_edge = shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor)
-    return dice_loss #+ seg_edge + edge_edge
+    return dice_loss + edge_edge + seg_edge
 
 
 
