@@ -18,6 +18,7 @@ class Trainer:
         self.val_writer = tf.summary.create_file_writer(val_log_dir)
         self.epoch_train_loss = tf.keras.metrics.Mean('epoch_loss', dtype=tf.float32)
         self.epoch_val_loss = tf.keras.metrics.Mean('epoch_loss', dtype=tf.float32)
+        self.epoch_val_accuracy = tf.keras.metrics.Accuracy('epoch_accuracy', dtype=tf.float32)
 
         self.log_freq = 100
         self.model_dir = model_dir
