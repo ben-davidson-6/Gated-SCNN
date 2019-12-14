@@ -22,6 +22,7 @@ class Trainer:
         self.log_freq = 100
         self.model_dir = model_dir
 
+    @tf.function
     def train_step(self, x, y):
         self.step.assign_add(1)
         with tf.GradientTape() as tape:
@@ -46,7 +47,6 @@ class Trainer:
             tf.summary.scalar('Epoch loss', self.epoch_train_loss.result(), step=epoch)
         tf.print('----- Epoch loss ------ ', self.epoch_train_loss.result())
 
-    @tf.function
     def train_epoch(self, epoch):
         for step, (x, y) in enumerate(self.train_dataset):
             loss = self.train_step(x, y)
@@ -54,7 +54,6 @@ class Trainer:
 
         self.log_epoch_loss(epoch)
 
-    @tf.function
     def val_epoch(self, epoch):
         for step, (x, y) in enumerate(self.train_dataset):
             prediction, pred_shape = self.model(x)
