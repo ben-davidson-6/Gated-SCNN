@@ -42,5 +42,7 @@ except FileNotFoundError:
     OBJECT_INFO = None
 
 
+SEED = 1
+
 
 
