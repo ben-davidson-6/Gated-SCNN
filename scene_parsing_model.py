@@ -27,8 +27,8 @@ trainer = Trainer(
     model,
     scene_data.build_training_dataset(),
     scene_data.build_validation_dataset(),
-    epochs=1,
-    optimiser=tf.keras.optimizers.RMSprop(0.0001),
+    epochs=300,
+    optimiser=tf.keras.optimizers.RMSprop(),
     log_dir='logs',
     model_dir='logs/model')
 trainer.train_loop()
