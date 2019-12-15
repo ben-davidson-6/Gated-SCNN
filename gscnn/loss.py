@@ -1,14 +1,32 @@
 import tensorflow as tf
 
 
-def gen_dice(y_true, y_pred, eps=0.):
+def flat_generalised_dice(y_true, y_pred, eps=0.):
+    y_pred = tf.nn.softmax(y_pred)
+
+    # [classes]
+    counts = tf.reduce_sum(y_true, axis=0)
+    weights = 1. / (counts ** 2)
+    weights = tf.where(tf.math.is_finite(weights), weights, eps)
+
+    multed = tf.reduce_sum(y_true * y_pred, axis=0)
+    summed = tf.reduce_sum(y_true + y_pred, axis=0)
+
+    # []
+    numerator = tf.reduce_sum(weights * multed, axis=-1)
+    denom = tf.reduce_sum(weights * summed, axis=-1)
+    dice = 1. - 2. * numerator / denom
+    return dice
+
+
+def generalised_dice(y_true, y_pred, eps=0.):
     # [b, h, w, classes]
-    pred_tensor = tf.nn.softmax(y_pred)
+    y_pred = tf.nn.softmax(y_pred)
     y_true_shape = tf.shape(y_true)
 
     # [b, h*w, classes]
     y_true = tf.reshape(y_true, [-1, y_true_shape[1]*y_true_shape[2], y_true_shape[3]])
-    y_pred = tf.reshape(pred_tensor, [-1, y_true_shape[1]*y_true_shape[2], y_true_shape[3]])
+    y_pred = tf.reshape(y_pred, [-1, y_true_shape[1]*y_true_shape[2], y_true_shape[3]])
 
     # [b, classes]
     counts = tf.reduce_sum(y_true, axis=1)
@@ -60,18 +78,27 @@ def segmentation_edge_loss(gt_tensor, pred_tensor, thresh=0.8):
 
 
 def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, thresh=0.8):
-    mask = tf.cast(pred_shape_tensor > thresh, tf.float32)
-    gt_tensor *= mask
-    pred_tensor *= mask
-    return gen_dice(gt_tensor, pred_tensor)
-
+    mask = pred_shape_tensor > thresh
+    mask = tf.stop_gradient(mask[..., 0])
+    gt = gt_tensor[mask]
+    pred = pred_tensor[mask]
+    if tf.reduce_sum(tf.cast(mask, tf.float32)) > 0:
+        return flat_generalised_dice(gt, pred)
+    else:
+        return 0.
 
 @tf.function
-def loss(gt_tensor, pred_tensor, pred_shape_tensor):
-    dice_loss = gen_dice(gt_tensor, pred_tensor)
-    seg_edge = segmentation_edge_loss(gt_tensor, pred_tensor)
-    edge_edge = shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor)
-    return dice_loss + edge_edge + seg_edge
+def loss(gt_label, logits, shape_head, edge_label):
+    dice_loss_seg = generalised_dice(gt_label, logits)
+
+    # dice loss for edges
+    shape_probs = tf.concat([1. - shape_head, shape_head], axis=-1)
+    dice_loss_boundary = generalised_dice(edge_label, shape_probs)
+
+    # regularizing loss
+    seg_edge = segmentation_edge_loss(gt_label, logits)
+    edge_edge = shape_edge_loss(gt_label, logits, shape_head)
+    return dice_loss_seg + dice_loss_boundary + edge_edge + seg_edge
 
 
 

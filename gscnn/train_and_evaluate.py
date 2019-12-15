@@ -24,11 +24,11 @@ class Trainer:
         self.model_dir = model_dir
 
     @tf.function
-    def train_step(self, x, y):
+    def train_step(self, im, label, edge_label):
         self.step.assign_add(1)
         with tf.GradientTape() as tape:
-            prediction, pred_shape = self.model(x)
-            loss = gscnn_loss.loss(y, prediction, pred_shape)
+            prediction, shape_head = self.model(im)
+            loss = gscnn_loss.loss(label, prediction, shape_head, edge_label)
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         return loss
@@ -49,16 +49,16 @@ class Trainer:
         tf.print('----- Epoch loss ------ ', self.epoch_train_loss.result())
 
     def train_epoch(self, epoch):
-        for step, (x, y) in enumerate(self.train_dataset):
-            loss = self.train_step(x, y)
+        for step, (im, label, edge_label) in enumerate(self.train_dataset):
+            loss = self.train_step(im, label, edge_label)
             self.log_batch_loss(loss)
 
         self.log_epoch_loss(epoch)
 
     def val_epoch(self, epoch):
-        for step, (x, y) in enumerate(self.train_dataset):
-            prediction, pred_shape = self.model(x)
-            loss = gscnn_loss.loss(y, prediction, pred_shape)
+        for step, (im, label, edge_label) in enumerate(self.val_dataset):
+            prediction, shape_head = self.model(im)
+            loss = gscnn_loss.loss(label, prediction, shape_head, edge_label)
             self.epoch_val_loss(loss)
 
         with self.val_writer.as_default():

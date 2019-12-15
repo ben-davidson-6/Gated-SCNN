@@ -129,7 +129,7 @@ class ShapeStream(tf.keras.layers.Layer):
     def __init__(self, h, w, **kwargs):
         super(ShapeStream, self).__init__(**kwargs)
         self.shape_attention = ShapeAttention(h, w)
-        self.reduction_conv = tf.keras.layers.Conv2D(2, 1, use_bias=False)
+        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=False):
@@ -253,7 +253,7 @@ class InceptionBackbone(tf.keras.layers.Layer):
             input_shape = input_shape[1:]
         backbone = tf.keras.applications.InceptionV3(
             include_top=False,
-            weights=None,
+            weights='imagenet',
             input_shape=input_shape)
         self.backbone = tf.keras.Model(
             backbone.input,
@@ -265,6 +265,7 @@ class InceptionBackbone(tf.keras.layers.Layer):
             })
 
     def call(self, inputs, training=False):
+        inputs = tf.keras.applications.inception_v3.preprocess_input(inputs)
         return self.backbone(inputs, training=training)
 
 
