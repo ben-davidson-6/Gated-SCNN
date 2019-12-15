@@ -89,16 +89,16 @@ def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, thresh=0.8):
 
 @tf.function
 def loss(gt_label, logits, shape_head, edge_label):
-    dice_loss_seg = generalised_dice(gt_label, logits)
+    seg_loss = generalised_dice(gt_label, logits)
 
     # dice loss for edges
     shape_probs = tf.concat([1. - shape_head, shape_head], axis=-1)
-    dice_loss_boundary = generalised_dice(edge_label, shape_probs)
+    edge_loss = generalised_dice(edge_label, shape_probs)
 
     # regularizing loss
-    seg_edge = segmentation_edge_loss(gt_label, logits)
-    edge_edge = shape_edge_loss(gt_label, logits, shape_head)
-    return dice_loss_seg + dice_loss_boundary + edge_edge + seg_edge
+    edge_consistency = segmentation_edge_loss(gt_label, logits)
+    edge_class_consistency = shape_edge_loss(gt_label, logits, shape_head)
+    return seg_loss, edge_loss, edge_class_consistency, edge_consistency
 
 
 

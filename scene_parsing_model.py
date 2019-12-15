@@ -4,11 +4,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 
 from gscnn.model_definition import GSCNN
-from gscnn.train_and_evaluate import Trainer
+from scene_parsing_data.train_and_evaluate import Trainer
 import scene_parsing_data.dataset
 
 
-batch_size = 4
+batch_size = 8
 network_input_h = network_input_w = 256
 max_crop_downsample = 0.5
 colour_aug_factor = 0.25
@@ -28,7 +28,7 @@ trainer = Trainer(
     scene_data.build_training_dataset(),
     scene_data.build_validation_dataset(),
     epochs=1,
-    optimiser=tf.keras.optimizers.RMSprop(),
+    optimiser=tf.keras.optimizers.RMSprop(0.0001),
     log_dir='logs',
     model_dir='logs/model')
 trainer.train_loop()

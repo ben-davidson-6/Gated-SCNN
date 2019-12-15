@@ -30,7 +30,8 @@ class SceneParsingDataset:
         reduction = tf.random.uniform(
             shape=[],
             minval=self.max_crop_downsample,
-            maxval=1.)
+            maxval=1.,
+            seed=scene_parsing_data.SEED)
         crop_size = tf.cast(max_crop_size, tf.float32)*reduction
         crop_size = tf.cast(crop_size, tf.int32)
         return tf.concat([crop_size, all_input_shape[-1:]], axis=0)
@@ -40,8 +41,8 @@ class SceneParsingDataset:
         tensor_shape = tf.shape(all_input_tensor)
         crop_size = self.crop_size(tensor_shape)
         if train:
-            cropped = tf.image.random_crop(all_input_tensor, crop_size)
-            cropped = tf.image.random_flip_left_right(cropped)
+            cropped = tf.image.random_crop(all_input_tensor, crop_size, seed=scene_parsing_data.SEED)
+            cropped = tf.image.random_flip_left_right(cropped, seed=scene_parsing_data.SEED)
         else:
             cropped = tf.image.central_crop(all_input_tensor, 1.)
         return cropped[..., :3], cropped[..., 3:4], cropped[..., 4:]
@@ -57,10 +58,13 @@ class SceneParsingDataset:
         return image, label, edge_label
 
     def colour_jitter(self, image,):
-        image = tf.image.random_brightness(image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor)
-        image = tf.image.random_saturation(image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor)
-        image = tf.image.random_contrast(image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor)
-        image = tf.image.random_hue(image, self.colour_aug_factor)
+        image = tf.image.random_brightness(
+            image, self.colour_aug_factor, seed=scene_parsing_data.SEED)
+        image = tf.image.random_saturation(
+            image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor, seed=scene_parsing_data.SEED)
+        image = tf.image.random_contrast(
+            image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor, seed=scene_parsing_data.SEED)
+        image = tf.image.random_hue(image, self.colour_aug_factor, seed=scene_parsing_data.SEED)
         return image
 
     @staticmethod
@@ -99,7 +103,7 @@ class SceneParsingDataset:
         image_paths, label_paths, edge_label_paths = SceneParsingDataset.get_paths(train)
         dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths, edge_label_paths))
         if train:
-            dataset = dataset.shuffle(20000)
+            dataset = dataset.shuffle(20000, seed=scene_parsing_data.SEED)
         dataset = dataset.map(
             SceneParsingDataset.paths_to_tensors,
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
