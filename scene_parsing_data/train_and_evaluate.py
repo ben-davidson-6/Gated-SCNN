@@ -5,7 +5,8 @@ import gscnn.loss as gscnn_loss
 from time import time
 
 class Trainer:
-    def __init__(self, model,  train_dataset, val_dataset, epochs, optimiser, log_dir, model_dir):
+    def __init__(self, model,  train_dataset, val_dataset, epochs, optimiser, log_dir, model_dir, l1, l2, l3, l4):
+        self.weights = [l1, l2, l3, l4]
         self.model = model
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -81,8 +82,8 @@ class Trainer:
 
     @tf.function
     def forward_pass(self, im, label, edge_label, train):
-        prediction, shape_head = self.model(im)
-        sub_losses = gscnn_loss.loss(label, prediction, shape_head, edge_label)
+        prediction, shape_head = self.model(im, training=train)
+        sub_losses = gscnn_loss.loss(label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses
 
     @tf.function

@@ -129,7 +129,7 @@ class ShapeStream(tf.keras.layers.Layer):
     def __init__(self, h, w, **kwargs):
         super(ShapeStream, self).__init__(**kwargs)
         self.shape_attention = ShapeAttention(h, w)
-        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False)
+        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, )
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=False):
