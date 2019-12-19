@@ -12,7 +12,7 @@ batch_size = 16
 network_input_h = network_input_w = 180
 max_crop_downsample = 0.75
 colour_aug_factor = 0.25
-lr = 0.00001
+lr = 0.001
 l1 = 1.
 l2 = 3.
 l3 = 1.

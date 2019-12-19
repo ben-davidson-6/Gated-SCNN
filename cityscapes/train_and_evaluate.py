@@ -1,6 +1,7 @@
 import tensorflow as tf
 import os
 import cityscapes.utils
+import cityscapes
 import gscnn.loss as gscnn_loss
 from time import time
 
@@ -21,7 +22,6 @@ class Trainer:
         self.val_writer = tf.summary.create_file_writer(val_log_dir)
         self.log_freq = 100
         self.model_dir = model_dir
-        self.dice_weights = cityscapes.utils.get_weights(2.)
 
         # will build summaries in forward pass
         self.recorded_tensors = {
@@ -50,7 +50,7 @@ class Trainer:
         # convert to colour palette
         label_flat = tf.argmax(label, axis=-1)
         pred_label_flat = tf.argmax(tf.nn.softmax(logits), axis=-1)
-        colour_array = tf.constant(scene_parsing_data.COLOURS)
+        colour_array = tf.constant(cityscapes.COLOUR_PALETTE)
         label_image = tf.gather(colour_array, label_flat)
         pred_label_image = tf.gather(colour_array, pred_label_flat)
 

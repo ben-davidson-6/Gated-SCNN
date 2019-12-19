@@ -1,5 +1,5 @@
 import tensorflow as tf
-import cityscapes.cityscapes
+import cityscapes.raw_dataset
 import cityscapes
 
 
@@ -12,7 +12,7 @@ class CityScapes:
         self.max_crop_downsample = max_crop_downsample
         self.colour_aug_factor = colour_aug_factor
 
-        self.raw_data = cityscapes.cityscapes.CityScapesRaw(data_dir)
+        self.raw_data = cityscapes.raw_dataset.CityScapesRaw(data_dir)
 
     @staticmethod
     def image_path_process(path):
@@ -80,7 +80,7 @@ class CityScapes:
         split = cityscapes.TRAIN if train else cityscapes.VAL
         paths = self.raw_data.dataset_paths(split)
         image_paths, label_paths, edge_paths = zip(*paths)
-        return image_paths, label_paths, edge_paths
+        return list(image_paths), list(label_paths), list(edge_paths)
 
     def process_batch(self, images, labels, edges, train):
         if train:
@@ -117,4 +117,25 @@ class CityScapes:
 
 
 if __name__ == '__main__':
-    pass
+    batch_size = 8
+    network_input_h = network_input_w = 180
+    max_crop_downsample = 0.75
+    colour_aug_factor = 0.25
+    lr = 0.001
+    l1 = 1.
+    l2 = 3.
+    l3 = 1.
+    l4 = 1.
+
+    cityscapes_dataset_loader = CityScapes(
+        batch_size,
+        network_input_h,
+        network_input_w,
+        max_crop_downsample,
+        colour_aug_factor,
+        data_dir='/home/ben/datasets/cityscapes'
+    )
+    ps = cityscapes_dataset_loader.get_paths(train=True)
+    print(ps[0][:5])
+    print(ps[1][:5])
+    print(ps[2][:5])
