@@ -1,6 +1,6 @@
 import tensorflow as tf
 import os
-import scene_parsing_data.utils
+import cityscapes.utils
 import gscnn.loss as gscnn_loss
 from time import time
 
@@ -21,6 +21,7 @@ class Trainer:
         self.val_writer = tf.summary.create_file_writer(val_log_dir)
         self.log_freq = 100
         self.model_dir = model_dir
+        self.dice_weights = cityscapes.utils.get_weights(2.)
 
         # will build summaries in forward pass
         self.recorded_tensors = {
@@ -83,7 +84,8 @@ class Trainer:
     @tf.function
     def forward_pass(self, im, label, edge_label, train):
         prediction, shape_head = self.model(im, training=train)
-        sub_losses = gscnn_loss.loss(label, prediction, shape_head, edge_label, self.weights)
+        sub_losses = gscnn_loss.loss(
+            label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses
 
     @tf.function

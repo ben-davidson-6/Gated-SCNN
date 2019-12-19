@@ -2,7 +2,7 @@ import tensorflow as tf
 
 import numpy as np
 from gscnn.model_definition import DebugModel
-from scene_parsing_data.train_and_evaluate import Trainer
+from cityscapes.train_and_evaluate import Trainer
 import matplotlib.pyplot as plt
 
 

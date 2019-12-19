@@ -1,5 +1,4 @@
 import os
-import scene_parsing_data
 import random
 import numpy as np
 import imageio
@@ -46,10 +45,20 @@ def get_random_example():
     return imageio.imread(im_p), imageio.imread(label_p)
 
 
+def list_files(startpath):
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        print('{}{}/'.format(indent, os.path.basename(root)))
+        subindent = ' ' * 4 * (level + 1)
+        if len(files) > 100:
+            print('{}#{}files'.format(subindent, len(files)))
+        else:
+            for f in files:
+                print('{}{}'.format(subindent, f))
+
+
 if __name__ == '__main__':
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    import tensorflow as tf
-    a = tf.constant([[True, False], [True, False]])
-    b = tf.constant([[[1, 1], [2, 2]], [[3, 3], [4, 4]]])
-    print(b[a].numpy())
+    import cityscapes
+    list_files(cityscapes.DATA_DIR + '/gtFine')
