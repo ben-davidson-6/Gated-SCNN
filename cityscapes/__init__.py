@@ -3,10 +3,11 @@ import numpy as np
 
 
 DATA_DIR = '/home/ben/datasets/cityscapes'
+RESULTS_DIR = '/home/ben/datasets/cityscapes/results'
 TRAIN = 'train'
 VAL = 'val'
 IMG_SUFFIX = '_leftImg8bit.png'
-LABEL_SUFFIX = '_gtFine_labelIds.png'
+LABEL_SUFFIX = '_gtFine_labelTrainIds.png'
 EDGE_LABEL_SUFFIX = '_gtFine_edge.png'
 SEED = 1
 #--------------------------------------------------------------------------------
@@ -100,7 +101,14 @@ LABEL_INFO = [
     Label(  'license plate'        , -1 ,       -1 , 'vehicle'         , 7       , False        , True         , (  0,  0,142) ),
 ]
 
-N_CLASSES = len(LABEL_INFO)
-COLOUR_PALETTE = np.zeros([N_CLASSES, 3], dtype=np.uint8)
+N_CLASSES = 19
+COLOUR_PALETTE = np.zeros([len(LABEL_INFO), 3], dtype=np.uint8)
 for l in LABEL_INFO:
     COLOUR_PALETTE[l.id] = l.color
+
+TRAINING_COLOUR_PALETTE = np.zeros([N_CLASSES, 3], dtype=np.uint8)
+for l in LABEL_INFO:
+    if not l.ignoreInEval:
+        TRAINING_COLOUR_PALETTE[l.trainId] = l.color
+
+IGNORE_ID = 255

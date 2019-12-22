@@ -8,13 +8,13 @@ from cityscapes.train_and_evaluate import Trainer
 import cityscapes.dataset
 
 
-batch_size = 16
-network_input_h = network_input_w = 180
+batch_size = 4
+network_input_h = network_input_w = 700
 max_crop_downsample = 0.75
 colour_aug_factor = 0.25
 lr = 0.001
 l1 = 1.
-l2 = 3.
+l2 = 1.
 l3 = 1.
 l4 = 1.
 
@@ -34,7 +34,7 @@ trainer = Trainer(
     cityscapes_dataset_loader.build_training_dataset(),
     cityscapes_dataset_loader.build_validation_dataset(),
     epochs=300,
-    optimiser=tf.keras.optimizers.RMSprop(lr),
+    optimiser=tf.keras.optimizers.Adam(lr),
     log_dir='logs',
     model_dir='logs/model',
     l1=l1, l2=l2, l3=l3, l4=l4)

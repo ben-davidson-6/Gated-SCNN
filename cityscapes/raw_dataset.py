@@ -141,7 +141,7 @@ class CityScapesRaw:
     def get_random_plottable_example(self):
         img, label = self.get_random_val_example()
         edge_label = CityScapesRaw.flat_label_to_edge_label(label)
-        return img, cityscapes.COLOUR_PALETTE[label], edge_label
+        return img, cityscapes.TRAINING_COLOUR_PALETTE[label], edge_label
 
     def plot_random_val(self):
         img, label, edge_label = self.get_random_plottable_example()

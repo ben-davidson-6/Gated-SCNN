@@ -2,7 +2,7 @@ import tensorflow as tf
 import os
 import cityscapes.utils
 import cityscapes
-import gscnn.loss as gscnn_loss
+import cityscapes.loss as loss
 from time import time
 
 class Trainer:
@@ -50,7 +50,7 @@ class Trainer:
         # convert to colour palette
         label_flat = tf.argmax(label, axis=-1)
         pred_label_flat = tf.argmax(tf.nn.softmax(logits), axis=-1)
-        colour_array = tf.constant(cityscapes.COLOUR_PALETTE)
+        colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
         label_image = tf.gather(colour_array, label_flat)
         pred_label_image = tf.gather(colour_array, pred_label_flat)
 
@@ -84,7 +84,7 @@ class Trainer:
     @tf.function
     def forward_pass(self, im, label, edge_label, train):
         prediction, shape_head = self.model(im, training=train)
-        sub_losses = gscnn_loss.loss(
+        sub_losses = loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses
 
