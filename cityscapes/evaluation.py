@@ -41,10 +41,14 @@ def show_single_example():
 
 
 def build_results():
+    lookup_arr = np.zeros([19], dtype=np.uint8)
+    for i in range(19):
+        lookup_arr[i] = cityscapes.TRAINID_TO_LABEL_ID[i]
     model = inference.GSCNNInfer(out_p)
     data = CityScapesRaw(cityscapes.DATA_DIR)
     paths = data.get_img_paths(split=cityscapes.VAL)
     n = len(paths)
+
     for k, im_p in enumerate(paths):
         if k%10 == 0:
             print('done {} of {}'.format(k, n))
@@ -53,6 +57,7 @@ def build_results():
         img = imageio.imread(im_p)
         pred, shape = model(img)
         pred = np.argmax(pred[0], axis=-1)
+        pred = lookup_arr[pred].astype(np.uint8)
         imageio.imsave(save_path, pred)
 
 if __name__ == '__main__':

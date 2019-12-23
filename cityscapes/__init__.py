@@ -100,6 +100,7 @@ LABEL_INFO = [
     Label(  'bicycle'              , 33 ,       18 , 'vehicle'         , 7       , True         , False        , (119, 11, 32) ),
     Label(  'license plate'        , -1 ,       -1 , 'vehicle'         , 7       , False        , True         , (  0,  0,142) ),
 ]
+TRAINID_TO_LABEL_ID   = { label.trainId : label.id for label in LABEL_INFO }
 
 N_CLASSES = 19
 COLOUR_PALETTE = np.zeros([len(LABEL_INFO), 3], dtype=np.uint8)

@@ -2,7 +2,7 @@ import tensorflow as tf
 import os
 import cityscapes.utils
 import cityscapes
-import cityscapes.loss as loss
+import gscnn.loss as loss
 from time import time
 
 class Trainer:
@@ -39,9 +39,10 @@ class Trainer:
         }
         self.epoch_metrics = {
             'accuracy': tf.keras.metrics.Mean(),
-            'loss': tf.keras.metrics.Mean()}
+            'loss': tf.keras.metrics.Mean(),
+            'mean_iou': tf.keras.metrics.MeanIoU(num_classes=cityscapes.N_CLASSES)}
 
-        self.best_accuracy = -1.
+        self.best_iou = 10000000.
 
     def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
         step = self.train_step_counter if train else self.val_step_counter
@@ -63,16 +64,17 @@ class Trainer:
 
         self.epoch_metrics['accuracy'].update_state(accuracy)
         self.epoch_metrics['loss'].update_state(loss)
+        self.epoch_metrics['mean_iou'].update_state(label_flat, pred_label_flat)
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
             with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*3), 0)):
                 tf.summary.image(
                     'edge_comparison',
-                    tf.concat([edge_label[..., 1:], shape_head], axis=1),
+                    tf.concat([edge_label[..., 1:], shape_head], axis=2),
                     step=step)
                 tf.summary.image(
                     'label_comparison',
-                    tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=1),
+                    tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
                     step=step)
             tf.summary.scalar('seg_loss', seg_loss, step=step)
             tf.summary.scalar('edge_loss', edge_loss, step=step)
@@ -93,6 +95,7 @@ class Trainer:
         with tf.GradientTape() as tape:
             prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=True)
             loss = sum(sub_losses)
+
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         return prediction, shape_head, sub_losses
@@ -124,7 +127,7 @@ class Trainer:
     def make_weight_path(self, epoch):
         return os.path.join(
             self.model_dir,
-            'epoch_{}_val_acc_{}'.format(epoch, self.epoch_metrics['accuracy'].result()))
+            'epoch_{}_val_iou_{}'.format(epoch, self.epoch_metrics['mean_iou'].result()))
 
     def train_loop(self):
         for epoch in range(self.epochs):
@@ -138,11 +141,11 @@ class Trainer:
             st = time()
             self.val_epoch()
             print('Validating an epoch took {}'.format(time() - st))
-            if self.epoch_metrics['accuracy'].result() > self.best_accuracy:
+            if self.epoch_metrics['mean_iou'].result() > self.best_iou:
                 self.model.save_weights(
                     self.make_weight_path(epoch),
                     save_format='tf')
-                self.best_accuracy = self.epoch_metrics['accuracy'].result()
+                self.best_iou = self.epoch_metrics['mean_iou'].result()
             self.log_metrics(train=False, epoch=epoch)
 
 

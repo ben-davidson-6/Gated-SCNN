@@ -1,5 +1,4 @@
 import tensorflow as tf
-import cityscapes
 
 
 def generalised_dice(y_true, y_pred, eps=0.0001):
@@ -72,16 +71,29 @@ def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, keep_mask, thresh
         return 0.
 
 
+def weighted_cross_entropy(y_true, y_pred):
+    # weights
+    counts = tf.reduce_sum(y_true, axis=0, keepdims=True)
+    weights = counts/tf.reduce_sum(counts, keepdims=True)
+    weights = 1./weights
+    weights = tf.where(tf.math.is_finite(weights), weights, tf.zeros_like(weights))
+
+    # everything here is one hot so this essentially picks the class weight
+    # per row of y_true
+    weights = tf.reduce_sum(y_true*weights, axis=1)
+
+    # compute your (unweighted) softmax cross entropy loss
+    unweighted_losses = tf.nn.softmax_cross_entropy_with_logits(y_true, y_pred)
+    weighted_losses = unweighted_losses * weights
+    loss = tf.reduce_mean(weighted_losses)
+    return loss
+
+
 @tf.function
 def loss(gt_label, logits, shape_head, edge_label, loss_weights):
 
     keep_mask = tf.reduce_any(gt_label == 1., axis=-1)
-
-    seg_loss = tf.losses.categorical_crossentropy(
-        gt_label[keep_mask],
-        logits[keep_mask],
-        from_logits=True)
-    seg_loss = tf.reduce_mean(seg_loss)
+    seg_loss = weighted_cross_entropy(gt_label[keep_mask], logits[keep_mask])
 
     # dice loss for edges
     shape_probs = tf.concat([1. - shape_head, shape_head], axis=-1)
@@ -92,10 +104,3 @@ def loss(gt_label, logits, shape_head, edge_label, loss_weights):
     edge_class_consistency = shape_edge_loss(gt_label, logits, shape_head, keep_mask) * loss_weights[3]
     return seg_loss, edge_loss, edge_class_consistency, edge_consistency
 
-
-
-
-
-
-if __name__ == '__main__':
-    print(tf.one_hot(tf.constant(10), depth=3).numpy())
