@@ -5,6 +5,7 @@ import cityscapes
 import gscnn.loss as loss
 from time import time
 
+
 class Trainer:
     def __init__(self, model,  train_dataset, val_dataset, epochs, optimiser, log_dir, model_dir, l1, l2, l3, l4):
         self.weights = [l1, l2, l3, l4]
@@ -49,15 +50,18 @@ class Trainer:
         if step.numpy()%self.log_freq != 0:
             return
         # convert to colour palette
+        keep_mask = tf.reduce_any(label == 1., axis=-1)
+
         label_flat = tf.argmax(label, axis=-1)
         pred_label_flat = tf.argmax(tf.nn.softmax(logits), axis=-1)
         colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
         label_image = tf.gather(colour_array, label_flat)
         pred_label_image = tf.gather(colour_array, pred_label_flat)
-
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
         loss = sum(sub_losses)
 
+        label_flat = label_flat[keep_mask]
+        pred_label_flat = pred_label_flat[keep_mask]
         correct = tf.reduce_sum(tf.cast(label_flat == pred_label_flat, tf.float32))
         total_vals = tf.shape(tf.reshape(pred_label_flat, [-1]))[0]
         accuracy = correct/tf.cast(total_vals, tf.float32)
@@ -68,6 +72,7 @@ class Trainer:
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
             with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*3), 0)):
+
                 tf.summary.image(
                     'edge_comparison',
                     tf.concat([edge_label[..., 1:], shape_head], axis=2),

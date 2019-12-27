@@ -17,7 +17,7 @@ class GateConv(tf.keras.layers.Layer):
         self.batch_norm_1 = tf.keras.layers.BatchNormalization()
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
-        self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1)
+        self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False)
         self.batch_norm_2 = tf.keras.layers.BatchNormalization()
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
@@ -58,7 +58,7 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
         super(ResnetPreactUnit, self).__init__(**kwargs)
         self.bn_1 = tf.keras.layers.BatchNormalization()
         self.relu = tf.keras.layers.ReLU()
-        self.conv_1 = tf.keras.layers.Conv2D(depth, 3, padding='SAME')
+        self.conv_1 = tf.keras.layers.Conv2D(depth, 3, padding='SAME', use_bias=False)
         self.bn_2 = tf.keras.layers.BatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(depth, 3, padding='SAME')
 
@@ -74,9 +74,8 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
 
 
 class ShapeAttention(tf.keras.layers.Layer):
-    def __init__(self, h, w, **kwargs):
+    def __init__(self, **kwargs):
         super(ShapeAttention, self).__init__(**kwargs)
-        self.resize = Resize(h, w)
 
         self.gated_conv_1 = GatedShapeConv()
         self.gated_conv_2 = GatedShapeConv()
@@ -97,15 +96,15 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=False):
-        s1, s2, s3, s4 = x
-        # todo this resizing can be made better
-        s1 = self.resize(s1)
+        (s1, s2, s3, s4), shape = x
+        resize = Resize(shape[0], shape[1])
+        s1 = resize(s1)
         s2 = self.shape_reduction_2(s2)
-        s2 = self.resize(s2)
+        s2 = resize(s2)
         s3 = self.shape_reduction_3(s3)
-        s3 = self.resize(s3)
+        s3 = resize(s3)
         s4 = self.shape_reduction_4(s4)
-        s4 = self.resize(s4)
+        s4 = resize(s4)
 
         x = self.res_1(s1, training=training)
         x = self.reduction_conv_1(x)
@@ -126,15 +125,15 @@ class ShapeAttention(tf.keras.layers.Layer):
 
 
 class ShapeStream(tf.keras.layers.Layer):
-    def __init__(self, h, w, **kwargs):
+    def __init__(self, **kwargs):
         super(ShapeStream, self).__init__(**kwargs)
-        self.shape_attention = ShapeAttention(h, w)
+        self.shape_attention = ShapeAttention()
         self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, )
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=False):
-        shape_backbone_activations, image_edges = x
-        edge_out = self.shape_attention(shape_backbone_activations)
+        (shape_backbone_activations, image_edges), shape = x
+        edge_out = self.shape_attention([shape_backbone_activations, shape])
         backbone_representation = tf.concat([edge_out, image_edges], axis=-1)
         shape_logits = self.reduction_conv(backbone_representation)
         shape_attention = self.sigmoid(shape_logits)
@@ -142,39 +141,50 @@ class ShapeStream(tf.keras.layers.Layer):
 
 
 class AtrousConvolution(tf.keras.layers.Layer):
-    def __init__(self, rate, filters, kernel_size, use_bias, activation, **kwargs):
+    def __init__(self, rate, filters, kernel_size, **kwargs):
         super(AtrousConvolution, self).__init__(**kwargs)
-        self.pad = tf.keras.layers.ZeroPadding2D((rate, rate))
-        self.convolution = tf.keras.layers.Conv2D(filters, kernel_size, activation=activation, use_bias=use_bias, dilation_rate=(rate, rate))
+        self.kernel_size = kernel_size
+        self.out_channels = filters
+        self.rate = rate
+        self.kernel = None
+
+    def build(self, input_shape):
+        in_channels = input_shape[-1]
+        self.kernel = self.add_weight(
+            name='kernel',
+            shape=[self.kernel_size, self.kernel_size, in_channels, self.out_channels],
+            initializer=tf.keras.initializers.GlorotNormal())
 
     def call(self, x, training=False):
-        return self.convolution(self.pad(x))
+        return tf.nn.atrous_conv2d(x, self.kernel, self.rate, padding='SAME')
 
 
 class AtrousPyramidPooling(tf.keras.layers.Layer):
+
     def __init__(self, out_channels, **kwargs):
         super(AtrousPyramidPooling, self).__init__(**kwargs)
+        self.relu = tf.keras.layers.ReLU()
 
         # for final output of backbone
         self.bn_1 = tf.keras.layers.BatchNormalization()
-        self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, activation=tf.nn.relu)
+        self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         self.bn_2 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3, use_bias=False, activation=tf.nn.relu)
+        self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
 
         self.bn_3 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3, use_bias=False, activation=tf.nn.relu)
+        self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
         self.bn_4 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3, use_bias=False, activation=tf.nn.relu)
+        self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
 
         # for backbone features
         self.bn_img = tf.keras.layers.BatchNormalization()
-        self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, activation=tf.nn.relu)
+        self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # for shape features
         self.bn_shape = tf.keras.layers.BatchNormalization()
-        self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, activation=tf.nn.relu)
+        self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # 1x1 reduction convolutions
         self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False)
@@ -193,25 +203,38 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         # process backbone features and the shape activations
         # from the shape stream
         img_net = tf.reduce_mean(image_features, axis=[1, 2], keepdims=True)
-        img_net = self.bn_img(img_net, training=training)
-        img_net = self.conv_img(img_net)
+        img_net = self.conv_img(img_net, training=training)
+        img_net = self.bn_img(img_net)
+        img_net = self.relu(img_net)
         img_net = self.resize_backbone(img_net)
-        shape_net = self.resize_backbone(shape_features)
-        shape_net = self.bn_shape(shape_net, training=training)
+
+        shape_net = self.conv_shape(shape_features)
+        shape_net = self.bn_shape(shape_net, training)
+        shape_net = self.relu(shape_net)
+        shape_net = self.resize_backbone(shape_net)
+
         net = tf.concat([img_net, shape_net], axis=-1)
 
         # process with atrous
-        w = self.bn_1(image_features, training=training)
-        w = self.conv_1(w)
-        x = self.bn_2(image_features, training=training)
-        x = self.atrous_conv_1(x)
-        y = self.bn_3(image_features, training=training)
-        y = self.atrous_conv_2(y)
-        z = self.bn_4(image_features, training=training)
-        z = self.atrous_conv_3(z)
+        w = self.conv_1(image_features)
+        w = self.bn_1(w, training=training)
+        w = self.relu(w)
+
+        x = self.atrous_conv_1(image_features)
+        x = self.bn_2(x, training=training)
+        x = self.relu(x)
+
+        y = self.atrous_conv_2(image_features)
+        y = self.bn_3(y, training=training)
+        y = self.relu(y)
+
+        z = self.atrous_conv_3(image_features)
+        z = self.bn_4(z, training=training)
+        z = self.relu(z)
 
         # atrous output from final layer of backbone
         # and shape stream
+
         net = tf.concat([net, w, x, y, z], axis=-1)
         net = self.conv_reduction_1(net)
 
@@ -224,9 +247,8 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 
 
 class FinalLogitLayer(tf.keras.layers.Layer):
-    def __init__(self, h, w, num_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
-        self.resize = Resize(h, w)
         self.bn_1 = tf.keras.layers.BatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
         self.bn_2 = tf.keras.layers.BatchNormalization()
@@ -234,32 +256,29 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
     def call(self, x, training=False):
+        x, shape = x
+        resize = Resize(shape[0], shape[1])
         x = self.bn_1(x, training=training)
         x = self.conv_1(x)
         x = self.bn_2(x, training=training)
         x = self.conv_2(x)
         x = self.conv_3(x)
-        x = self.resize(x)
+        x = resize(x)
         return x
 
 
 class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(InceptionBackbone, self).__init__(**kwargs)
-        self.backbone = None
-
-    def build(self, input_shape):
-        if len(input_shape) == 4:
-            input_shape = input_shape[1:]
         backbone = tf.keras.applications.InceptionV3(
             include_top=False,
             weights='imagenet',
-            input_shape=input_shape)
+            input_shape=[None, None, 3])
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('activation_5').output,
-                's2': backbone.get_layer('mixed2').output,
+                's1': backbone.get_layer('activation_2').output,
+                's2': backbone.get_layer('activation_4').output,
                 's3': backbone.get_layer('mixed7').output,
                 's4': backbone.get_layer('mixed10').output,
             })
@@ -275,92 +294,57 @@ class GSCNN(tf.keras.Model):
 
         self.n_classes = n_classes
         self.backbone = InceptionBackbone()
-        self.shape_stream = None
+        self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(256)
-        self.logit_layer = None
-        self.to_gray_scale = None
-        self.resize = None
+        self.logit_layer = FinalLogitLayer(self.n_classes)
+        self.to_gray_scale = lambda x: tf.image.rgb_to_grayscale(x[..., :3])
 
-    def build(self, image_shape):
-        self.shape_stream = ShapeStream(image_shape[1], image_shape[2])
-        self.logit_layer = FinalLogitLayer(image_shape[1], image_shape[2], self.n_classes)
-        self.resize = Resize(image_shape[1], image_shape[2])
-        ndim = image_shape[-1]
-        if ndim != 1:
-            self.to_gray_scale = lambda x: tf.image.rgb_to_grayscale(x[..., :3])
-        else:
-            self.to_gray_scale = lambda x: x
-
-    def get_edge_image(self, tensor):
+    def _edge_mag(self, tensor, eps=1e-8):
         gray = self.to_gray_scale(tensor)
-        sobel = tf.image.sobel_edges(gray)
-        mag = tf.linalg.norm(sobel, axis=-1)
-        mag_max = tf.reduce_max(mag, axis=[1, 2], keepdims=True)
-        mag_max = tf.where(tf.abs(mag_max) < 0.0001, 1., mag_max)
-        return mag/mag_max
+        tensor_edge = tf.image.sobel_edges(gray)
+        mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
+        mag = tf.math.sqrt(mag)
+        mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
+        return mag
 
     @tf.function
     def call(self, inputs, training=False):
+        input_shape = tf.shape(inputs)
+        target_shape = tf.stack([input_shape[1], input_shape[2]])
+        resize = Resize(target_shape[0], target_shape[1])
+
         backbone_feature_dict = self.backbone(inputs, training)
         s1, s2, s3, s4 = (backbone_feature_dict['s1'],
                           backbone_feature_dict['s2'],
                           backbone_feature_dict['s3'],
                           backbone_feature_dict['s4'])
         backbone_features = [s1, s2, s3, s4]
-        edge = self.get_edge_image(inputs)
+        edge = self._edge_mag(inputs)
         shape_activations, edge_out = self.shape_stream(
-            [backbone_features, edge],
+            [[backbone_features, edge], target_shape],
             training)
         backbone_activations = backbone_features[-1]
         intermediate_rep = backbone_features[1]
         net = self.atrous_pooling(
             [backbone_activations, shape_activations, intermediate_rep],
             training)
-        net = self.logit_layer(net, training)
-        net = self.resize(net)
+        net = self.logit_layer([net, target_shape], training)
+
+        net = resize(net)
         return net, shape_activations
 
 
-class DebugModel(tf.keras.Model):
-    def __init__(self, **kwargs):
-        super(DebugModel, self).__init__(**kwargs)
-        self.d1 = tf.keras.layers.Conv2D(16, 3, activation=None)
-        self.d2 = tf.keras.layers.MaxPool2D()
-        self.d3 = tf.keras.layers.Conv2D(16, 3, activation=None)
-        self.d4 = tf.keras.layers.MaxPool2D()
-        self.d5 = tf.keras.layers.Conv2D(16, 3, activation=None)
-        self.d6 = tf.keras.layers.MaxPool2D()
-
-        self.d7 = tf.keras.layers.Conv2D(32, 3, activation=tf.nn.relu)
-        self.d8 = tf.keras.layers.Conv2D(11, 3, activation=None, use_bias=False)
-
-    @tf.function
-    def call(self, inputs, training=False):
-        s = tf.image.sobel_edges(inputs)
-        s = tf.linalg.norm(s, axis=-1)
-        s /= tf.maximum(tf.reduce_max(s, axis=-1, keepdims=True), 1.)
-
-        x = self.d1(inputs)
-        x = self.d2(x)
-        a = self.d3(x)
-        x = self.d4(a)
-        x = self.d5(x)
-        x = self.d6(x)
-
-        x = tf.image.resize(x, [28, 28])
-        a = tf.image.resize(a, [28, 28])
-        x = tf.concat([a, x], axis=-1)
-        x = self.d7(x)
-        x = self.d8(x)
-        x = tf.image.resize(x, [28, 28])
-
-        return x, s
-
-
 if __name__ == '__main__':
-    import numpy as np
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    gscnn = GSCNN(2)
-    t = gscnn(np.random.random([1, 100, 100, 3]))
-    print(t)
+    import numpy as np
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+    rate = 6
+    conv = AtrousConvolution(6, 1, 3, False, None)
+    # x = conv(np.zeros([1, 36, 36, 3]))
+    # todo need to fix this weird error
+    filters = np.zeros([3, 3, 256, 512])
+    x = tf.nn.atrous_conv2d(np.zeros([2, 23, 23, 256]), filters, 6, padding='SAME')
+    x = tf.nn.atrous_conv2d(np.zeros([2, 47, 47, 256]), filters, 6, padding='SAME')
+
+    print(x.numpy().shape)
