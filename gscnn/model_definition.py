@@ -203,13 +203,13 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         # process backbone features and the shape activations
         # from the shape stream
         img_net = tf.reduce_mean(image_features, axis=[1, 2], keepdims=True)
-        img_net = self.conv_img(img_net, training=training)
-        img_net = self.bn_img(img_net)
+        img_net = self.conv_img(img_net)
+        img_net = self.bn_img(img_net, training=training)
         img_net = self.relu(img_net)
         img_net = self.resize_backbone(img_net)
 
         shape_net = self.conv_shape(shape_features)
-        shape_net = self.bn_shape(shape_net, training)
+        shape_net = self.bn_shape(shape_net, training=training)
         shape_net = self.relu(shape_net)
         shape_net = self.resize_backbone(shape_net)
 
@@ -313,7 +313,7 @@ class GSCNN(tf.keras.Model):
         target_shape = tf.stack([input_shape[1], input_shape[2]])
         resize = Resize(target_shape[0], target_shape[1])
 
-        backbone_feature_dict = self.backbone(inputs, training)
+        backbone_feature_dict = self.backbone(inputs, training=training)
         s1, s2, s3, s4 = (backbone_feature_dict['s1'],
                           backbone_feature_dict['s2'],
                           backbone_feature_dict['s3'],
@@ -322,14 +322,13 @@ class GSCNN(tf.keras.Model):
         edge = self._edge_mag(inputs)
         shape_activations, edge_out = self.shape_stream(
             [[backbone_features, edge], target_shape],
-            training)
+            training=training)
         backbone_activations = backbone_features[-1]
         intermediate_rep = backbone_features[1]
         net = self.atrous_pooling(
             [backbone_activations, shape_activations, intermediate_rep],
-            training)
-        net = self.logit_layer([net, target_shape], training)
-
+            training=training)
+        net = self.logit_layer([net, target_shape], training=training)
         net = resize(net)
         return net, shape_activations
 
