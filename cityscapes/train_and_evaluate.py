@@ -90,7 +90,8 @@ class Trainer:
 
     @tf.function
     def forward_pass(self, im, label, edge_label, train):
-        prediction, shape_head = self.model(im, training=train)
+        out = self.model(im, training=train)
+        prediction, shape_head = out[..., :-1], out[..., -1:]
         sub_losses = loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses

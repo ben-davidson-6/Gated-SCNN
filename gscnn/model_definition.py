@@ -2,13 +2,13 @@ import tensorflow as tf
 tf.keras.layers.BatchNormalization._USE_V2_BEHAVIOR = False
 
 
-class Resize(tf.keras.layers.Layer):
-    def __init__(self, h, w, **kwargs):
-        super(Resize, self).__init__(**kwargs)
-        self.target_shape = tf.stack([h, w])
-
-    def call(self, inputs, **kwargs):
-        return tf.image.resize(inputs, self.target_shape)
+# class Resize(tf.keras.layers.Layer):
+#     def __init__(self, h, w, **kwargs):
+#         super(Resize, self).__init__(**kwargs)
+#         self.target_shape = tf.stack([h, w])
+#
+#     def call(self, inputs, **kwargs):
+#         return tf.image.resize(inputs, self.target_shape)
 
 
 class GateConv(tf.keras.layers.Layer):
@@ -97,14 +97,13 @@ class ShapeAttention(tf.keras.layers.Layer):
 
     def call(self, x, training=False):
         (s1, s2, s3, s4), shape = x
-        resize = Resize(shape[0], shape[1])
-        s1 = resize(s1)
+        s1 = tf.image.resize(s1, shape)
         s2 = self.shape_reduction_2(s2)
-        s2 = resize(s2)
+        s2 = tf.image.resize(s2, shape)
         s3 = self.shape_reduction_3(s3)
-        s3 = resize(s3)
+        s3 = tf.image.resize(s3, shape)
         s4 = self.shape_reduction_4(s4)
-        s4 = resize(s4)
+        s4 = tf.image.resize(s4, shape)
 
         x = self.res_1(s1, training=training)
         x = self.reduction_conv_1(x)
@@ -190,15 +189,13 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False)
         self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False)
 
-        self.resize_backbone = None
-        self.resize_intermediate = None
 
     def call(self, x, training=False):
         image_features, shape_features, intermediate_rep = x
 
         backbone_shape, intermediate_shape = tf.shape(image_features), tf.shape(intermediate_rep)
-        self.resize_backbone = Resize(backbone_shape[1], backbone_shape[2])
-        self.resize_intermediate = Resize(intermediate_shape[1], intermediate_shape[2])
+        backbone_shape = tf.stack([backbone_shape[1], backbone_shape[2]])
+        intermediate_shape = tf.stack([intermediate_shape[1], intermediate_shape[2]])
 
         # process backbone features and the shape activations
         # from the shape stream
@@ -206,12 +203,12 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         img_net = self.conv_img(img_net)
         img_net = self.bn_img(img_net, training=training)
         img_net = self.relu(img_net)
-        img_net = self.resize_backbone(img_net)
+        img_net = tf.image.resize(img_net, backbone_shape)
 
         shape_net = self.conv_shape(shape_features)
         shape_net = self.bn_shape(shape_net, training=training)
         shape_net = self.relu(shape_net)
-        shape_net = self.resize_backbone(shape_net)
+        shape_net = tf.image.resize(shape_net, backbone_shape)
 
         net = tf.concat([img_net, shape_net], axis=-1)
 
@@ -240,7 +237,7 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 
         # combine intermediate representation
         intermediate_rep = self.conv_reduction_2(intermediate_rep)
-        net = self.resize_intermediate(net)
+        net = tf.image.resize(net, intermediate_shape)
         net = tf.concat([net, intermediate_rep], axis=-1)
 
         return net
@@ -257,13 +254,12 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 
     def call(self, x, training=False):
         x, shape = x
-        resize = Resize(shape[0], shape[1])
         x = self.bn_1(x, training=training)
         x = self.conv_1(x)
         x = self.bn_2(x, training=training)
         x = self.conv_2(x)
         x = self.conv_3(x)
-        x = resize(x)
+        x = tf.image.resize(x, shape)
         return x
 
 
@@ -311,7 +307,6 @@ class GSCNN(tf.keras.Model):
     def call(self, inputs, training=False):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
-        resize = Resize(target_shape[0], target_shape[1])
 
         backbone_feature_dict = self.backbone(inputs, training=training)
         s1, s2, s3, s4 = (backbone_feature_dict['s1'],
@@ -329,21 +324,9 @@ class GSCNN(tf.keras.Model):
             [backbone_activations, shape_activations, intermediate_rep],
             training=training)
         net = self.logit_layer([net, target_shape], training=training)
-        net = resize(net)
-        return net, shape_activations
+        net = tf.image.resize(net, target_shape)
+        return tf.concat([net, shape_activations], axis=-1)
 
 
 if __name__ == '__main__':
-    import os
-    import numpy as np
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-    rate = 6
-    conv = AtrousConvolution(6, 1, 3, False, None)
-    # x = conv(np.zeros([1, 36, 36, 3]))
-    # todo need to fix this weird error
-    filters = np.zeros([3, 3, 256, 512])
-    x = tf.nn.atrous_conv2d(np.zeros([2, 23, 23, 256]), filters, 6, padding='SAME')
-    x = tf.nn.atrous_conv2d(np.zeros([2, 47, 47, 256]), filters, 6, padding='SAME')
-
-    print(x.numpy().shape)
+    pass

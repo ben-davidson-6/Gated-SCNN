@@ -5,7 +5,7 @@ import cityscapes
 
 class CityScapes:
 
-    def __init__(self, batch_size, network_input_h, network_input_2, max_crop_downsample, colour_aug_factor, data_dir, mixup_val):
+    def __init__(self, batch_size, network_input_h, network_input_2, max_crop_downsample, colour_aug_factor, data_dir, mixup_val, merge_labels=False):
         self.batch_size = batch_size
         self.network_input_h = network_input_h
         self.network_input_w =  network_input_2
@@ -13,6 +13,7 @@ class CityScapes:
         self.colour_aug_factor = colour_aug_factor
         self.mixup_val = mixup_val
         self.raw_data = cityscapes.raw_dataset.CityScapesRaw(data_dir)
+        self.merge_labels = merge_labels
 
     @staticmethod
     def image_path_process(path):
@@ -103,7 +104,11 @@ class CityScapes:
                 images, labels, edges = self.mixup(images, labels, edges)
         else:
             images = tf.cast(images, tf.float32)
-        return images, labels, edges
+
+        if self.merge_labels:
+            return images, tf.concat([labels, edges], axis=-1)
+        else:
+            return images, labels, edges
 
     def build_dataset(self, train):
         image_paths, label_paths, edge_label_paths = self.get_paths(train)
