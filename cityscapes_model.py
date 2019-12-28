@@ -9,7 +9,7 @@ import cityscapes.dataset
 
 
 batch_size = 2
-network_input_h = network_input_w = 800
+network_input_h = network_input_w = 700
 max_crop_downsample = 0.9
 colour_aug_factor = 0.25
 mixup_val = None
@@ -26,12 +26,12 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     max_crop_downsample,
     colour_aug_factor,
     data_dir='/home/ben/datasets/cityscapes',
-    mixup_val=mixup_val
+    mixup_val=mixup_val,
 )
 
 model = GSCNN(n_classes=cityscapes.N_CLASSES)
 
-n_train_images = 3750
+n_train_images = 2975
 n_steps_in_epoch = n_train_images // batch_size
 learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
     0.001,

@@ -28,7 +28,7 @@ class CityScapes:
         return label
 
     def crop_size(self, all_input_shape):
-        max_crop_size = tf.stack([self.network_input_h, self.network_input_w])
+        max_crop_size = tf.stack([1024, 1024])
         reduction = tf.random.uniform(
             shape=[],
             minval=self.max_crop_downsample,
@@ -46,7 +46,7 @@ class CityScapes:
             cropped = tf.image.random_crop(all_input_tensor, crop_size, seed=cityscapes.SEED)
             cropped = tf.image.random_flip_left_right(cropped, seed=cityscapes.SEED)
         else:
-            cropped = all_input_tensor
+            cropped = tf.image.central_crop(all_input_tensor, 1.0)
         return cropped[..., :3], cropped[..., 3:4], cropped[..., 4:]
 
     def mixup(self, image, label, edge_label):
@@ -63,10 +63,11 @@ class CityScapes:
     def mold_to_network_input_shape(self, image, label, edge_label, train,):
         image, label, edge_label = self.crop_images(image, label, edge_label, train=train)
 
-        # image becomes float here
-        image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
-        label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
-        edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
+        if train:
+            # image becomes float here
+            image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
+            label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
+            edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
 
         return image, label, edge_label
 
@@ -104,33 +105,75 @@ class CityScapes:
                 images, labels, edges = self.mixup(images, labels, edges)
         else:
             images = tf.cast(images, tf.float32)
-
         if self.merge_labels:
             return images, tf.concat([labels, edges], axis=-1)
         else:
             return images, labels, edges
 
-    def build_dataset(self, train):
-        image_paths, label_paths, edge_label_paths = self.get_paths(train)
+    def build_training_dataset(self):
+        image_paths, label_paths, edge_label_paths = self.get_paths(train=True)
         dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths, edge_label_paths))
-        if train:
-            dataset = dataset.shuffle(20000, seed=cityscapes.SEED)
+        dataset = dataset.shuffle(20000, seed=cityscapes.SEED)
         dataset = dataset.map(
             CityScapes.paths_to_tensors,
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        if train:
-            dataset = dataset.map(
-                lambda x, y, z: self.mold_to_network_input_shape(x, y, z, train=train),
-                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(
+            lambda x, y, z: self.mold_to_network_input_shape(x, y, z, train=True),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.map(
-            lambda x, y, z: self.process_batch(x, y, z, train),
+            lambda x, y, z: self.process_batch(x, y, z, train=True),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         return dataset
 
-    def build_training_dataset(self):
-        return self.build_dataset(train=True)
-
     def build_validation_dataset(self):
-        return self.build_dataset(train=False)
+        image_paths, label_paths, edge_label_paths = self.get_paths(train=False)
+        dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths, edge_label_paths))
+        dataset = dataset.map(
+            CityScapes.paths_to_tensors,
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.batch(1)
+        dataset = dataset.map(
+            lambda x, y, z: self.process_batch(x, y, z, train=False),
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        return dataset
+
+
+if __name__ == '__main__':
+    import os
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = ""
+
+    batch_size = 2
+    network_input_h = network_input_w = 800
+    max_crop_downsample = 0.9
+    colour_aug_factor = 0.25
+    mixup_val = None
+    lr = 0.001
+    l1 = 1.
+    l2 = 10.
+    l3 = 1.
+    l4 = 1.
+
+    cityscapes_dataset_loader = CityScapes(
+        batch_size,
+        network_input_h,
+        network_input_w,
+        max_crop_downsample,
+        colour_aug_factor,
+        data_dir='/home/ben/datasets/cityscapes',
+        mixup_val=mixup_val,
+    )
+
+    for x, y, z in cityscapes_dataset_loader.build_validation_dataset():
+        print(x)
+        print(x.numpy().mean())
+        break
+    for x, y, z in cityscapes_dataset_loader.build_training_dataset():
+        print(x)
+        print(x.numpy().mean())
+        break

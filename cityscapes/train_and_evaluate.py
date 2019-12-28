@@ -2,7 +2,7 @@ import tensorflow as tf
 import os
 import cityscapes.utils
 import cityscapes
-import gscnn.loss as loss
+import gscnn.loss as gscnn_loss
 from time import time
 
 
@@ -21,7 +21,7 @@ class Trainer:
         val_log_dir = os.path.join(log_dir, 'val')
         self.train_writer = tf.summary.create_file_writer(train_log_dir)
         self.val_writer = tf.summary.create_file_writer(val_log_dir)
-        self.log_freq = 100
+        self.log_freq = 50
         self.model_dir = model_dir
 
         # will build summaries in forward pass
@@ -43,7 +43,7 @@ class Trainer:
             'loss': tf.keras.metrics.Mean(),
             'mean_iou': tf.keras.metrics.MeanIoU(num_classes=cityscapes.N_CLASSES)}
 
-        self.best_iou = 10000000.
+        self.best_iou = -1.
 
     def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
         step = self.train_step_counter if train else self.val_step_counter
@@ -72,7 +72,6 @@ class Trainer:
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
             with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*3), 0)):
-
                 tf.summary.image(
                     'edge_comparison',
                     tf.concat([edge_label[..., 1:], shape_head], axis=2),
@@ -88,29 +87,26 @@ class Trainer:
             tf.summary.scalar('batch_loss', loss, step=step)
             tf.summary.scalar('batch_accuracy', accuracy, step=step)
 
-    @tf.function
     def forward_pass(self, im, label, edge_label, train):
         out = self.model(im, training=train)
         prediction, shape_head = out[..., :-1], out[..., -1:]
-        sub_losses = loss.loss(
+        sub_losses = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses
 
-    @tf.function
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
             prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=True)
             loss = sum(sub_losses)
-
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         return prediction, shape_head, sub_losses
 
     def get_summary_writer(self, train):
-        return self.train_writer if train else self. val_writer
+        return self.train_writer if train else self.val_writer
 
     def log_metrics(self, train, epoch):
-        writer = self.train_writer if train else self. val_writer
+        writer = self.train_writer if train else self.val_writer
         with writer.as_default():
             for k in self.epoch_metrics:
                 tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
@@ -153,8 +149,3 @@ class Trainer:
                     save_format='tf')
                 self.best_iou = self.epoch_metrics['mean_iou'].result()
             self.log_metrics(train=False, epoch=epoch)
-
-
-
-
-

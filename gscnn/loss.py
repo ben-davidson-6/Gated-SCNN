@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def generalised_dice(y_true, y_pred, eps=0.0001):
+def generalised_dice(y_true, y_pred, eps=0.0):
     # [b, h, w, classes]
     y_pred = tf.nn.softmax(y_pred)
     y_true_shape = tf.shape(y_true)
@@ -75,7 +75,7 @@ def weighted_cross_entropy(y_true, y_pred):
     # weights
     counts = tf.reduce_sum(y_true, axis=0, keepdims=True)
     weights = counts/tf.reduce_sum(counts, keepdims=True)
-    weights = 1. - weights
+    weights = 1./weights
     weights = tf.where(tf.math.is_finite(weights), weights, tf.zeros_like(weights))
 
     # everything here is one hot so this essentially picks the class weight

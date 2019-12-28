@@ -1,14 +1,5 @@
 import tensorflow as tf
-tf.keras.layers.BatchNormalization._USE_V2_BEHAVIOR = False
-
-
-# class Resize(tf.keras.layers.Layer):
-#     def __init__(self, h, w, **kwargs):
-#         super(Resize, self).__init__(**kwargs)
-#         self.target_shape = tf.stack([h, w])
-#
-#     def call(self, inputs, **kwargs):
-#         return tf.image.resize(inputs, self.target_shape)
+# todo reactor the reshaping until the last moment
 
 
 class GateConv(tf.keras.layers.Layer):
@@ -45,10 +36,10 @@ class GatedShapeConv(tf.keras.layers.Layer):
         feature_channels = input_shape[0][-1]
         self.conv_1 = tf.keras.layers.Conv2D(feature_channels, 1)
 
-    def call(self, x, **kwargs):
+    def call(self, x, training=False):
         feature_map, shape_map = x
         features = tf.concat([feature_map, shape_map], axis=-1)
-        alpha = self.gated_conv(features)
+        alpha = self.gated_conv(features, training=training)
         gated = feature_map*(alpha + 1.)
         return self.conv_1(gated)
 
@@ -132,7 +123,7 @@ class ShapeStream(tf.keras.layers.Layer):
 
     def call(self, x, training=False):
         (shape_backbone_activations, image_edges), shape = x
-        edge_out = self.shape_attention([shape_backbone_activations, shape])
+        edge_out = self.shape_attention([shape_backbone_activations, shape], training=training)
         backbone_representation = tf.concat([edge_out, image_edges], axis=-1)
         shape_logits = self.reduction_conv(backbone_representation)
         shape_attention = self.sigmoid(shape_logits)
@@ -188,7 +179,6 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         # 1x1 reduction convolutions
         self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False)
         self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False)
-
 
     def call(self, x, training=False):
         image_features, shape_features, intermediate_rep = x
@@ -303,8 +293,7 @@ class GSCNN(tf.keras.Model):
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
-    @tf.function
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=False, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
 
