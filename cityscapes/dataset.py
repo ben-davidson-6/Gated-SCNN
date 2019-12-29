@@ -63,11 +63,10 @@ class CityScapes:
     def mold_to_network_input_shape(self, image, label, edge_label, train,):
         image, label, edge_label = self.crop_images(image, label, edge_label, train=train)
 
-        if train:
-            # image becomes float here
-            image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
-            label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
-            edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
+        # image becomes float here
+        image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
+        label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
+        edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
 
         return image, label, edge_label
 

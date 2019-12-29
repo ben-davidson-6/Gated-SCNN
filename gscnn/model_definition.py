@@ -1,5 +1,10 @@
 import tensorflow as tf
-# todo reactor the reshaping until the last moment
+
+
+def resize_to(x, target_t):
+    s = tf.shape(target_t)
+    t_shape = tf.stack([s[1], s[2]])
+    return tf.image.resize(x, t_shape)
 
 
 class GateConv(tf.keras.layers.Layer):
@@ -16,7 +21,7 @@ class GateConv(tf.keras.layers.Layer):
         in_channels = input_shape[-1]
         self.conv_1 = tf.keras.layers.Conv2D(in_channels, kernel_size=1)
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         x = self.batch_norm_1(x, training=training)
         x = self.conv_1(x)
         x = self.relu(x)
@@ -36,7 +41,7 @@ class GatedShapeConv(tf.keras.layers.Layer):
         feature_channels = input_shape[0][-1]
         self.conv_1 = tf.keras.layers.Conv2D(feature_channels, 1)
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         feature_map, shape_map = x
         features = tf.concat([feature_map, shape_map], axis=-1)
         alpha = self.gated_conv(features, training=training)
@@ -53,12 +58,12 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
         self.bn_2 = tf.keras.layers.BatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(depth, 3, padding='SAME')
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         shortcut = x
-        x = self.bn_1(x, training=training)
+        x = self.bn_1(x, training)
         x = self.relu(x)
         x = self.conv_1(x)
-        x = self.bn_2(x, training=training)
+        x = self.bn_2(x, training)
         x = self.relu(x)
         x = self.conv_2(x)
         return x + shortcut
@@ -86,26 +91,25 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.reduction_conv_4 = tf.keras.layers.Conv2D(1, 1, use_bias=False)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         (s1, s2, s3, s4), shape = x
-        s1 = tf.image.resize(s1, shape)
         s2 = self.shape_reduction_2(s2)
-        s2 = tf.image.resize(s2, shape)
         s3 = self.shape_reduction_3(s3)
-        s3 = tf.image.resize(s3, shape)
         s4 = self.shape_reduction_4(s4)
-        s4 = tf.image.resize(s4, shape)
 
         x = self.res_1(s1, training=training)
         x = self.reduction_conv_1(x)
+        s2 = resize_to(s2, target_t=x)
         x = self.gated_conv_1([x, s2], training=training)
 
         x = self.res_2(x, training=training)
         x = self.reduction_conv_2(x)
+        s3 = resize_to(s3, target_t=x)
         x = self.gated_conv_2([x, s3], training=training)
 
         x = self.res_3(x, training=training)
         x = self.reduction_conv_3(x)
+        s4 = resize_to(s4, target_t=x)
         x = self.gated_conv_3([x, s4], training=training)
 
         x = self.reduction_conv_4(x)
@@ -121,9 +125,10 @@ class ShapeStream(tf.keras.layers.Layer):
         self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, )
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         (shape_backbone_activations, image_edges), shape = x
         edge_out = self.shape_attention([shape_backbone_activations, shape], training=training)
+        image_edges = resize_to(image_edges, target_t=edge_out)
         backbone_representation = tf.concat([edge_out, image_edges], axis=-1)
         shape_logits = self.reduction_conv(backbone_representation)
         shape_attention = self.sigmoid(shape_logits)
@@ -145,7 +150,7 @@ class AtrousConvolution(tf.keras.layers.Layer):
             shape=[self.kernel_size, self.kernel_size, in_channels, self.out_channels],
             initializer=tf.keras.initializers.GlorotNormal())
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         return tf.nn.atrous_conv2d(x, self.kernel, self.rate, padding='SAME')
 
 
@@ -180,7 +185,7 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False)
         self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False)
 
-    def call(self, x, training=False):
+    def call(self, x, training=None):
         image_features, shape_features, intermediate_rep = x
 
         backbone_shape, intermediate_shape = tf.shape(image_features), tf.shape(intermediate_rep)
@@ -242,14 +247,12 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
-    def call(self, x, training=False):
-        x, shape = x
+    def call(self, x, training=None):
         x = self.bn_1(x, training=training)
         x = self.conv_1(x)
         x = self.bn_2(x, training=training)
         x = self.conv_2(x)
         x = self.conv_3(x)
-        x = tf.image.resize(x, shape)
         return x
 
 
@@ -269,7 +272,7 @@ class InceptionBackbone(tf.keras.layers.Layer):
                 's4': backbone.get_layer('mixed10').output,
             })
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=None):
         inputs = tf.keras.applications.inception_v3.preprocess_input(inputs)
         return self.backbone(inputs, training=training)
 
@@ -283,17 +286,17 @@ class GSCNN(tf.keras.Model):
         self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
-        self.to_gray_scale = lambda x: tf.image.rgb_to_grayscale(x[..., :3])
 
-    def _edge_mag(self, tensor, eps=1e-8):
-        gray = self.to_gray_scale(tensor)
+    def sobel_edges(self, tensor, eps=1e-8):
+        gray = tf.image.rgb_to_grayscale(tensor[..., :3])
         tensor_edge = tf.image.sobel_edges(gray)
         mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
         mag = tf.math.sqrt(mag)
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
-    def call(self, inputs, training=False, mask=None):
+    @tf.function
+    def call(self, inputs, training=None, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
 
@@ -303,7 +306,7 @@ class GSCNN(tf.keras.Model):
                           backbone_feature_dict['s3'],
                           backbone_feature_dict['s4'])
         backbone_features = [s1, s2, s3, s4]
-        edge = self._edge_mag(inputs)
+        edge = self.sobel_edges(inputs)
         shape_activations, edge_out = self.shape_stream(
             [[backbone_features, edge], target_shape],
             training=training)
@@ -312,8 +315,9 @@ class GSCNN(tf.keras.Model):
         net = self.atrous_pooling(
             [backbone_activations, shape_activations, intermediate_rep],
             training=training)
-        net = self.logit_layer([net, target_shape], training=training)
+        net = self.logit_layer(net, training=training)
         net = tf.image.resize(net, target_shape)
+        shape_activations = tf.image.resize(shape_activations, target_shape)
         return tf.concat([net, shape_activations], axis=-1)
 
 

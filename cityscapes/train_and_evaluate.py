@@ -21,7 +21,7 @@ class Trainer:
         val_log_dir = os.path.join(log_dir, 'val')
         self.train_writer = tf.summary.create_file_writer(train_log_dir)
         self.val_writer = tf.summary.create_file_writer(val_log_dir)
-        self.log_freq = 50
+        self.log_freq = 200
         self.model_dir = model_dir
 
         # will build summaries in forward pass
@@ -87,6 +87,7 @@ class Trainer:
             tf.summary.scalar('batch_loss', loss, step=step)
             tf.summary.scalar('batch_accuracy', accuracy, step=step)
 
+    @tf.function
     def forward_pass(self, im, label, edge_label, train):
         out = self.model(im, training=train)
         prediction, shape_head = out[..., :-1], out[..., -1:]
@@ -94,6 +95,7 @@ class Trainer:
             label, prediction, shape_head, edge_label, self.weights)
         return prediction, shape_head, sub_losses
 
+    @tf.function
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
             prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=True)
@@ -113,6 +115,8 @@ class Trainer:
                 self.epoch_metrics[k].reset_states()
 
     def train_epoch(self, ):
+        tf.keras.backend.set_learning_phase(1)
+        self.model.trainable = True
         with self.train_writer.as_default():
             for im, label, edge_label in self.train_dataset:
                 prediction, shape_head, sub_losses = self.train_step(im, label, edge_label)
@@ -120,6 +124,7 @@ class Trainer:
                 self.train_step_counter.assign_add(1)
 
     def val_epoch(self,):
+        tf.keras.backend.set_learning_phase(0)
         with self.val_writer.as_default():
             for im, label, edge_label in self.val_dataset:
                 prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=False)
