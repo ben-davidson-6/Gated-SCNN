@@ -115,7 +115,6 @@ class Trainer:
                 self.epoch_metrics[k].reset_states()
 
     def train_epoch(self, ):
-        tf.keras.backend.set_learning_phase(1)
         self.model.trainable = True
         with self.train_writer.as_default():
             for im, label, edge_label in self.train_dataset:
@@ -124,7 +123,7 @@ class Trainer:
                 self.train_step_counter.assign_add(1)
 
     def val_epoch(self,):
-        tf.keras.backend.set_learning_phase(0)
+        self.model.trainable = False
         with self.val_writer.as_default():
             for im, label, edge_label in self.val_dataset:
                 prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=False)
