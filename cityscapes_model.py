@@ -5,14 +5,14 @@ from cityscapes.train_and_evaluate import Trainer
 import cityscapes.dataset
 
 
-batch_size = 6
-network_input_h = network_input_w = 700
+batch_size = 4
+network_input_h = network_input_w = 800
 max_crop_downsample = 0.5
 colour_aug_factor = 0.25
 mixup_val = None
 lr = 0.001
 l1 = 1.
-l2 = 10.
+l2 = 20.
 l3 = 1.
 l4 = 1.
 
@@ -30,11 +30,7 @@ model = GSCNN(n_classes=cityscapes.N_CLASSES)
 
 n_train_images = 2975
 n_steps_in_epoch = n_train_images // batch_size
-learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
-    0.001,
-    n_steps_in_epoch*200,
-    0.000001)
-optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=0.5)
+optimiser = tf.keras.optimizers.Adam()
 
 trainer = Trainer(
     model,

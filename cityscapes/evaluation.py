@@ -1,4 +1,3 @@
-import cityscapesscripts.evaluation as evaluation
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 import cityscapes
@@ -9,8 +8,8 @@ import numpy as np
 import imageio
 
 
-out_p = '/home/ben/projects/gated_shape_cnns/final_models/1/'
-weights_path = '/home/ben/venvs/py37/.guild/runs/f6671ff92d664806a9bd39140bb1363c/logs/model/epoch_260_val_acc_0.9218829274177551'
+out_p = '/home/ben/projects/gated_shape_cnns/final_models/mixed1/'
+weights_path = '/home/ben/venvs/py37/.guild/runs/7f8072dd6ca441fbbd642e14f7e3fb0b/logs/model/epoch_155_val_iou_0.6075576543807983'
 
 
 def export():
@@ -61,5 +60,6 @@ def build_results():
         imageio.imsave(save_path, pred)
 
 if __name__ == '__main__':
-    # export()
+    export()
+    # show_single_example()
     build_results()

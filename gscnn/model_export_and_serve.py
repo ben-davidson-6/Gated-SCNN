@@ -11,9 +11,9 @@ def export_model(h, w, c, classes, ckpt_path, out_dir):
     model.load_weights(ckpt_path)
     model.trainable = False
 
-    output, shape_head = model(float_input, training=False)
-    output = tf.keras.layers.Lambda(tf.nn.softmax)(output)
-    m = tf.keras.Model(input, [output, shape_head])
+    output = model(float_input, training=False)
+    o = tf.keras.layers.Lambda(tf.nn.softmax)(output[..., :-1])
+    m = tf.keras.Model(input, [o, output[..., -1:]])
     m.trainable = False
     tf.saved_model.save(m, out_dir)
 
@@ -40,4 +40,13 @@ class GSCNNInfer:
         im = self.image_to_input(im)
         class_pred, shape_head = self.model(im, training=False)
         return class_pred.numpy(), shape_head.numpy()
+
+
+if __name__ == '__main__':
+    import cityscapes
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+    p = '/home/ben/venvs/py37/.guild/runs/3c473a20bab744478f7585810281db29/logs/model/epoch_73_val_iou_0.5872902870178223'
+    out = '/home/ben/projects/gated_shape_cnns/final_models/mixed_4'
+    export_model(1024, 2048, 3, cityscapes.N_CLASSES, p, out)
 

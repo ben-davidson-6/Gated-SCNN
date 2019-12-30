@@ -50,13 +50,18 @@ class GatedShapeConv(tf.keras.layers.Layer):
 
 
 class ResnetPreactUnit(tf.keras.layers.Layer):
-    def __init__(self, depth, **kwargs):
+    def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
         self.bn_1 = tf.keras.layers.BatchNormalization()
         self.relu = tf.keras.layers.ReLU()
-        self.conv_1 = tf.keras.layers.Conv2D(depth, 3, padding='SAME', use_bias=False)
+        self.conv_1 = None
         self.bn_2 = tf.keras.layers.BatchNormalization()
-        self.conv_2 = tf.keras.layers.Conv2D(depth, 3, padding='SAME')
+        self.conv_2 = None
+
+    def build(self, input_shape):
+        cs = input_shape[-1]
+        self.conv_1 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False)
+        self.conv_2 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False)
 
     def call(self, x, training=None):
         shortcut = x
@@ -81,9 +86,9 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.shape_reduction_3 = tf.keras.layers.Conv2D(1, 1)
         self.shape_reduction_4 = tf.keras.layers.Conv2D(1, 1)
 
-        self.res_1 = ResnetPreactUnit(64)
-        self.res_2 = ResnetPreactUnit(32)
-        self.res_3 = ResnetPreactUnit(16)
+        self.res_1 = ResnetPreactUnit()
+        self.res_2 = ResnetPreactUnit()
+        self.res_3 = ResnetPreactUnit()
 
         self.reduction_conv_1 = tf.keras.layers.Conv2D(32, 1)
         self.reduction_conv_2 = tf.keras.layers.Conv2D(16, 1)
@@ -266,8 +271,8 @@ class InceptionBackbone(tf.keras.layers.Layer):
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('activation_2').output,
-                's2': backbone.get_layer('activation_4').output,
+                's1': backbone.get_layer('mixed1').output,
+                's2': backbone.get_layer('mixed2').output,
                 's3': backbone.get_layer('mixed7').output,
                 's4': backbone.get_layer('mixed10').output,
             })
@@ -322,4 +327,10 @@ class GSCNN(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    pass
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+    backbone = tf.keras.applications.InceptionV3(
+        include_top=False,
+        weights='imagenet',
+        input_shape=[800, 800, 3])
+    backbone.summary()
