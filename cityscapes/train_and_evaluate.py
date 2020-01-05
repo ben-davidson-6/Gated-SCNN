@@ -45,9 +45,11 @@ class Trainer:
 
         self.best_iou = -1.
 
-    @tf.function
-    def build_log_tensors(self, label, logits, sub_losses):
-        # convert to colour palette
+    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
+        step = self.train_step_counter if train else self.val_step_counter
+        if train and step.numpy() % self.log_freq != 0:
+            return
+        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
         keep_mask = tf.reduce_any(label == 1., axis=-1)
 
         flat_label = tf.argmax(label, axis=-1)
@@ -60,13 +62,6 @@ class Trainer:
         correct = tf.reduce_sum(tf.cast(flat_label_masked == flat_pred_label_masked, tf.float32))
         total_vals = tf.shape(tf.reshape(flat_pred_label_masked, [-1]))[0]
         accuracy = correct / tf.cast(total_vals, tf.float32)
-        return loss, accuracy, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label
-
-    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
-        step = self.train_step_counter if train else self.val_step_counter
-        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
-        loss, accuracy, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.build_log_tensors(
-            label, logits, sub_losses)
 
         self.epoch_metrics['accuracy'].update_state(accuracy)
         self.epoch_metrics['loss'].update_state(loss)
@@ -122,13 +117,14 @@ class Trainer:
                 tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
                 self.epoch_metrics[k].reset_states()
 
-    def train_epoch(self, ):
+    def train_epoch(self, repeat=1):
         self.model.trainable = True
         with self.train_writer.as_default():
-            for im, label, edge_label in self.train_dataset:
-                prediction, shape_head, sub_losses = self.train_step(im, label, edge_label)
-                self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses, train=True)
-                self.train_step_counter.assign_add(1)
+            for _ in range(repeat):
+                for im, label, edge_label in self.train_dataset:
+                    prediction, shape_head, sub_losses = self.train_step(im, label, edge_label)
+                    self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses, train=True)
+                    self.train_step_counter.assign_add(1)
 
     def val_epoch(self,):
         self.model.trainable = False
@@ -146,13 +142,13 @@ class Trainer:
             st = time()
             print('Epoch {}'.format(epoch))
             print('Training')
-            self.train_epoch()
-            print('Training an epoch took {}'.format(time() - st))
+            self.train_epoch(repeat=3)
+            print('Training an epoch took {0:1.0f}'.format(time() - st))
             self.log_metrics(train=True, epoch=epoch)
             print('Validating')
             st = time()
             self.val_epoch()
-            print('Validating an epoch took {}'.format(time() - st))
+            print('Validating an epoch took {0:1.0f}'.format(time() - st))
             self.model.save_weights(
                 os.path.join(self.model_dir, 'latest'),
                 save_format='tf')
