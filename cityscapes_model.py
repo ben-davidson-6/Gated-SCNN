@@ -10,9 +10,9 @@ network_input_h = network_input_w = 800
 max_crop_downsample = 0.5
 colour_aug_factor = 0.25
 mixup_val = None
-lr = 0.001
+lr = 0.0001
 l1 = 1.
-l2 = 20.
+l2 = 2.
 l3 = 1.
 l4 = 1.
 

@@ -93,7 +93,7 @@ def weighted_cross_entropy(y_true, y_pred):
 def loss(gt_label, logits, shape_head, edge_label, loss_weights):
 
     keep_mask = tf.reduce_any(gt_label == 1., axis=-1)
-    seg_loss = weighted_cross_entropy(gt_label[keep_mask], logits[keep_mask])
+    seg_loss = weighted_cross_entropy(gt_label[keep_mask], logits[keep_mask])*loss_weights[0]
 
     # dice loss for edges
     shape_probs = tf.concat([1. - shape_head, shape_head], axis=-1)

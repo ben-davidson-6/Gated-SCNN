@@ -8,8 +8,8 @@ import numpy as np
 import imageio
 
 
-out_p = '/home/ben/projects/gated_shape_cnns/final_models/mixed1/'
-weights_path = '/home/ben/venvs/py37/.guild/runs/7f8072dd6ca441fbbd642e14f7e3fb0b/logs/model/epoch_155_val_iou_0.6075576543807983'
+out_p = '/home/ben/projects/gated_shape_cnns/final_models/1/'
+weights_path = '/home/ben/venvs/py37/.guild/runs/09306376d4904d0995709ec0417d1cb1/logs/model/latest'
 
 
 def export():
@@ -59,7 +59,8 @@ def build_results():
         pred = lookup_arr[pred].astype(np.uint8)
         imageio.imsave(save_path, pred)
 
+
 if __name__ == '__main__':
     export()
-    # show_single_example()
+    show_single_example()
     build_results()

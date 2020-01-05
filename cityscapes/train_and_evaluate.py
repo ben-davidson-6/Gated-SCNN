@@ -45,41 +45,49 @@ class Trainer:
 
         self.best_iou = -1.
 
-    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
-        step = self.train_step_counter if train else self.val_step_counter
-        if step.numpy()%self.log_freq != 0:
-            return
+    @tf.function
+    def build_log_tensors(self, label, logits, sub_losses):
         # convert to colour palette
         keep_mask = tf.reduce_any(label == 1., axis=-1)
 
-        label_flat = tf.argmax(label, axis=-1)
-        pred_label_flat = tf.argmax(tf.nn.softmax(logits), axis=-1)
-        colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
-        label_image = tf.gather(colour_array, label_flat)
-        pred_label_image = tf.gather(colour_array, pred_label_flat)
-        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
+        flat_label = tf.argmax(label, axis=-1)
+        flat_pred_label = tf.argmax(tf.nn.softmax(logits), axis=-1)
+
         loss = sum(sub_losses)
 
-        label_flat = label_flat[keep_mask]
-        pred_label_flat = pred_label_flat[keep_mask]
-        correct = tf.reduce_sum(tf.cast(label_flat == pred_label_flat, tf.float32))
-        total_vals = tf.shape(tf.reshape(pred_label_flat, [-1]))[0]
-        accuracy = correct/tf.cast(total_vals, tf.float32)
+        flat_label_masked = flat_label[keep_mask]
+        flat_pred_label_masked = flat_pred_label[keep_mask]
+        correct = tf.reduce_sum(tf.cast(flat_label_masked == flat_pred_label_masked, tf.float32))
+        total_vals = tf.shape(tf.reshape(flat_pred_label_masked, [-1]))[0]
+        accuracy = correct / tf.cast(total_vals, tf.float32)
+        return loss, accuracy, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label
+
+    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
+        step = self.train_step_counter if train else self.val_step_counter
+        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
+        loss, accuracy, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.build_log_tensors(
+            label, logits, sub_losses)
 
         self.epoch_metrics['accuracy'].update_state(accuracy)
         self.epoch_metrics['loss'].update_state(loss)
-        self.epoch_metrics['mean_iou'].update_state(label_flat, pred_label_flat)
+        self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
-            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*3), 0)):
+            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*100), 0)):
+                colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
+                label_image = tf.gather(colour_array, flat_label)
+                pred_label_image = tf.gather(colour_array, flat_pred_label)
+
                 tf.summary.image(
                     'edge_comparison',
                     tf.concat([edge_label[..., 1:], shape_head], axis=2),
-                    step=step)
+                    step=step,
+                    max_outputs=1)
                 tf.summary.image(
                     'label_comparison',
                     tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
-                    step=step)
+                    step=step,
+                    max_outputs=1)
             tf.summary.scalar('seg_loss', seg_loss, step=step)
             tf.summary.scalar('edge_loss', edge_loss, step=step)
             tf.summary.scalar('edge_class_consistency', edge_class_consistency, step=step)
@@ -130,10 +138,8 @@ class Trainer:
                 self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses, train=False)
                 self.val_step_counter.assign_add(1)
 
-    def make_weight_path(self, epoch):
-        return os.path.join(
-            self.model_dir,
-            'epoch_{}_val_iou_{}'.format(epoch, self.epoch_metrics['mean_iou'].result()))
+    def make_weight_path(self,):
+        return os.path.join(self.model_dir, 'best')
 
     def train_loop(self):
         for epoch in range(self.epochs):
@@ -147,9 +153,13 @@ class Trainer:
             st = time()
             self.val_epoch()
             print('Validating an epoch took {}'.format(time() - st))
+            self.model.save_weights(
+                os.path.join(self.model_dir, 'latest'),
+                save_format='tf')
             if self.epoch_metrics['mean_iou'].result() > self.best_iou:
                 self.model.save_weights(
-                    self.make_weight_path(epoch),
+                    self.make_weight_path(),
                     save_format='tf')
                 self.best_iou = self.epoch_metrics['mean_iou'].result()
+            print('____ {} ____'.format(self.best_iou))
             self.log_metrics(train=False, epoch=epoch)

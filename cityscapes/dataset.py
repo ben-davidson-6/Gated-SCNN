@@ -141,38 +141,4 @@ class CityScapes:
 
 
 if __name__ == '__main__':
-    import os
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
-
-    batch_size = 2
-    network_input_h = network_input_w = 800
-    max_crop_downsample = 0.9
-    colour_aug_factor = 0.25
-    mixup_val = None
-    lr = 0.001
-    l1 = 1.
-    l2 = 10.
-    l3 = 1.
-    l4 = 1.
-
-    cityscapes_dataset_loader = CityScapes(
-        batch_size,
-        network_input_h,
-        network_input_w,
-        max_crop_downsample,
-        colour_aug_factor,
-        data_dir='/home/ben/datasets/cityscapes',
-        mixup_val=mixup_val,
-    )
-
-    for x, y, z in cityscapes_dataset_loader.build_validation_dataset():
-        print(x)
-        print(x.numpy().mean())
-        break
-    for x, y, z in cityscapes_dataset_loader.build_training_dataset():
-        print(x)
-        print(x.numpy().mean())
-        break
+    pass
