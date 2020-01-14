@@ -49,19 +49,21 @@ class Trainer:
         step = self.train_step_counter if train else self.val_step_counter
         if train and step.numpy() % self.log_freq != 0:
             return
-        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
-        keep_mask = tf.reduce_any(label == 1., axis=-1)
 
-        flat_label = tf.argmax(label, axis=-1)
-        flat_pred_label = tf.argmax(tf.nn.softmax(logits), axis=-1)
+        with tf.device('/gpu:0'):
+            seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
+            keep_mask = tf.reduce_any(label == 1., axis=-1)
 
-        loss = sum(sub_losses)
+            flat_label = tf.argmax(label, axis=-1)
+            flat_pred_label = tf.argmax(tf.nn.softmax(logits), axis=-1)
 
-        flat_label_masked = flat_label[keep_mask]
-        flat_pred_label_masked = flat_pred_label[keep_mask]
-        correct = tf.reduce_sum(tf.cast(flat_label_masked == flat_pred_label_masked, tf.float32))
-        total_vals = tf.shape(tf.reshape(flat_pred_label_masked, [-1]))[0]
-        accuracy = correct / tf.cast(total_vals, tf.float32)
+            loss = sum(sub_losses)
+
+            flat_label_masked = flat_label[keep_mask]
+            flat_pred_label_masked = flat_pred_label[keep_mask]
+            correct = tf.reduce_sum(tf.cast(flat_label_masked == flat_pred_label_masked, tf.float32))
+            total_vals = tf.shape(tf.reshape(flat_pred_label_masked, [-1]))[0]
+            accuracy = correct / tf.cast(total_vals, tf.float32)
 
         self.epoch_metrics['accuracy'].update_state(accuracy)
         self.epoch_metrics['loss'].update_state(loss)

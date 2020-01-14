@@ -3,7 +3,8 @@ import tensorflow as tf
 from gscnn.model_definition import GSCNN
 from cityscapes.train_and_evaluate import Trainer
 import cityscapes.dataset
-
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "3"
 
 batch_size = 4
 network_input_h = network_input_w = 800
@@ -30,7 +31,7 @@ model = GSCNN(n_classes=cityscapes.N_CLASSES)
 
 n_train_images = 2975
 n_steps_in_epoch = n_train_images // batch_size
-optimiser = tf.keras.optimizers.Adam()
+optimiser = tf.keras.optimizers.Adam(learning_rate=lr)
 
 trainer = Trainer(
     model,

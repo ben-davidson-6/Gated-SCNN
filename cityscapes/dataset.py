@@ -63,11 +63,13 @@ class CityScapes:
     def mold_to_network_input_shape(self, image, label, edge_label, train,):
         image, label, edge_label = self.crop_images(image, label, edge_label, train=train)
 
-        # image becomes float here
-        image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
-        label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
-        edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
-
+        if train:
+            # image becomes float here
+            image = tf.image.resize(image, (self.network_input_h, self.network_input_w))
+            label = tf.image.resize(label, (self.network_input_h, self.network_input_w), method='nearest')
+            edge_label = tf.image.resize(edge_label, (self.network_input_h, self.network_input_w), method='nearest')
+        else:
+            image = tf.cast(image, tf.float32)
         return image, label, edge_label
 
     def colour_jitter(self, image,):
@@ -103,7 +105,7 @@ class CityScapes:
             if self.mixup_val is not None:
                 images, labels, edges = self.mixup(images, labels, edges)
         else:
-            images = tf.cast(images, tf.float32)
+            pass
         if self.merge_labels:
             return images, tf.concat([labels, edges], axis=-1)
         else:
@@ -131,6 +133,9 @@ class CityScapes:
         dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths, edge_label_paths))
         dataset = dataset.map(
             CityScapes.paths_to_tensors,
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(
+            lambda x, y, z: self.mold_to_network_input_shape(x, y, z, train=False),
             num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(1)
         dataset = dataset.map(
