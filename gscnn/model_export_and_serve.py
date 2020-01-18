@@ -46,7 +46,7 @@ if __name__ == '__main__':
     import cityscapes
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-    p = '/home/ben/projects/gated_shape_cnns/logs/model/best.index'
+    p = '/home/ben/projects/gated_shape_cnns/logs/model/best'
     out = '/home/ben/projects/gated_shape_cnns/final_models/'
     export_model(1024, 2048, 3, cityscapes.N_CLASSES, p, out)
 
