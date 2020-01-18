@@ -128,7 +128,7 @@ class Trainer:
                 tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
                 self.epoch_metrics[k].reset_states()
 
-    def train_epoch(self, repeat=1):
+    def train_epoch(self, repeat):
         with self.train_writer.as_default():
             for _ in range(repeat):
                 for im, label, edge_label in self.train_dataset:
@@ -146,9 +146,9 @@ class Trainer:
     def make_weight_path(self,):
         return os.path.join(self.model_dir, 'best')
 
-    def train(self, epoch):
+    def train(self, epoch, repeat=1):
         print('Training')
-        self.train_epoch(repeat=3)
+        self.train_epoch(repeat=repeat)
         self.log_metrics(train=True, epoch=epoch)
 
     def validate(self, epoch):
@@ -166,12 +166,12 @@ class Trainer:
 
     def train_loop(self):
         for epoch in range(self.epochs):
-            print('Validating')
-            st = time()
-            self.validate(epoch)
-            print('Validating an epoch took {0:1.0f}'.format(time() - st))
-
             st = time()
             print('Epoch {}'.format(epoch))
             self.train(epoch)
             print('Training an epoch took {0:1.0f}'.format(time() - st))
+
+            print('Validating')
+            st = time()
+            self.validate(epoch)
+            print('Validating an epoch took {0:1.0f}'.format(time() - st))
