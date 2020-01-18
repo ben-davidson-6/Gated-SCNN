@@ -45,8 +45,8 @@ class GSCNNInfer:
 if __name__ == '__main__':
     import cityscapes
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-    p = '/home/ben/venvs/py37/.guild/runs/3c473a20bab744478f7585810281db29/logs/model/epoch_73_val_iou_0.5872902870178223'
-    out = '/home/ben/projects/gated_shape_cnns/final_models/mixed_4'
+    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+    p = '/home/ben/projects/gated_shape_cnns/logs/model/best.index'
+    out = '/home/ben/projects/gated_shape_cnns/final_models/'
     export_model(1024, 2048, 3, cityscapes.N_CLASSES, p, out)
 

@@ -4,7 +4,7 @@ from gscnn.model_definition import GSCNN
 from cityscapes.train_and_evaluate import Trainer
 import cityscapes.dataset
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "3"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 batch_size = 4
 network_input_h = network_input_w = 800
