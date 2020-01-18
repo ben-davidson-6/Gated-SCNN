@@ -91,12 +91,12 @@ class CityScapes:
     def process_training_batch(self, images, labels, edges):
         labels, edges = CityScapes.flat_to_one_hot(labels, edges)
         images = self.colour_jitter(images)
-        return images, tf.concat([labels, edges], axis=-1)
+        return images, labels, edges
 
     def process_validation_batch(self, images, labels, edges):
         labels, edges = CityScapes.flat_to_one_hot(labels, edges)
         images = tf.cast(images, tf.float32)
-        return images, tf.concat([labels, edges], axis=-1)
+        return images, labels, edges
 
     def get_raw_tensor_dataset(self, train):
         image_paths, label_paths, edge_label_paths = self.get_paths(train=train)
@@ -110,7 +110,7 @@ class CityScapes:
         dataset = self.get_raw_tensor_dataset(train=True)
         dataset = dataset.map(CityScapes.random_flip, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, train=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.map(lambda x, y, z: self.resize_images, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(self.resize_images, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.map(self.process_training_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)

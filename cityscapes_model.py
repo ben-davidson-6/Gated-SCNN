@@ -23,9 +23,7 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     network_input_w,
     max_crop_downsample,
     colour_aug_factor,
-    data_dir='/home/ben/datasets/cityscapes',
-    mixup_val=mixup_val,
-)
+    data_dir='/home/ben/datasets/cityscapes',)
 
 model = GSCNN(n_classes=cityscapes.N_CLASSES)
 
