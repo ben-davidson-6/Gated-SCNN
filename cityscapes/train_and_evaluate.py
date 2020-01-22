@@ -80,7 +80,7 @@ class Trainer:
         self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
-            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*100), 0)):
+            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*10), 0)):
                 label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
 
                 tf.summary.image(

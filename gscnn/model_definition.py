@@ -1,10 +1,13 @@
 import tensorflow as tf
+from gscnn.resnet import Resnet50
 
 
-def resize_to(x, target_t):
-    s = tf.shape(target_t)
-    t_shape = tf.stack([s[1], s[2]])
-    return tf.image.resize(x, t_shape)
+def resize_to(x, target_t=None, target_shape=None):
+    if target_shape is None:
+        s = tf.shape(target_t)
+        target_shape = tf.stack([s[1], s[2]])
+
+    return tf.image.resize(x, target_shape)
 
 
 class GateConv(tf.keras.layers.Layer):
@@ -170,13 +173,13 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         self.bn_2 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
+        self.atrous_conv_1 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
         self.bn_3 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
+        self.atrous_conv_2 = AtrousConvolution(24, filters=out_channels, kernel_size=3)
 
         self.bn_4 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
+        self.atrous_conv_3 = AtrousConvolution(36, filters=out_channels, kernel_size=3)
 
         # for backbone features
         self.bn_img = tf.keras.layers.BatchNormalization()
@@ -250,6 +253,8 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
         self.bn_2 = tf.keras.layers.BatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
+        self.bn_3 = tf.keras.layers.BatchNormalization()
+
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
     def call(self, x, training=None):
@@ -257,6 +262,7 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         x = self.conv_1(x)
         x = self.bn_2(x, training=training)
         x = self.conv_2(x)
+        x = self.bn_3(x, training=training)
         x = self.conv_3(x)
         return x
 
@@ -264,17 +270,17 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(InceptionBackbone, self).__init__(**kwargs)
-        backbone = tf.keras.applications.InceptionV3(
+        backbone = Resnet50(
             include_top=False,
             weights='imagenet',
             input_shape=[None, None, 3])
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('mixed1').output,
-                's2': backbone.get_layer('mixed2').output,
-                's3': backbone.get_layer('mixed7').output,
-                's4': backbone.get_layer('mixed10').output,
+                's1': backbone.get_layer('conv2_block3_out').output,
+                's2': backbone.get_layer('conv3_block4_out').output,
+                's3': backbone.get_layer('conv4_block6_out').output,
+                's4': backbone.get_layer('post_relu').output,
             })
 
     def call(self, inputs, training=None):
@@ -328,9 +334,8 @@ class GSCNN(tf.keras.Model):
 
 if __name__ == '__main__':
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-    backbone = tf.keras.applications.InceptionV3(
-        include_top=False,
-        weights='imagenet',
-        input_shape=[800, 800, 3])
-    backbone.summary()
+    import numpy as np
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = ""
+    m = GSCNN(2)
+    m(np.zeros([1, 750, 750, 3]))

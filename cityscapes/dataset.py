@@ -42,7 +42,6 @@ class CityScapes:
         crop_size = self.crop_size(tensor_shape)
         if train:
             cropped = tf.image.random_crop(all_input_tensor, crop_size, seed=cityscapes.SEED)
-            cropped = tf.image.random_flip_left_right(cropped, seed=cityscapes.SEED)
         else:
             cropped = tf.image.central_crop(all_input_tensor, 1.0)
         return cropped[..., :3], cropped[..., 3:4], cropped[..., 4:]
