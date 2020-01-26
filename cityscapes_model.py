@@ -6,14 +6,14 @@ import cityscapes.dataset
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
-batch_size = 3
+batch_size = 6
 network_input_h = network_input_w = 800
-max_crop_downsample = 0.5
+max_crop_downsample = network_input_h/1024 * 0.90
 colour_aug_factor = 0.25
 mixup_val = None
-lr = 0.0001
+lr = 0.001
 l1 = 1.
-l2 = 2.
+l2 = 20.
 l3 = 1.
 l4 = 1.
 

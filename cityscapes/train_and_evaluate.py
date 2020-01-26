@@ -80,7 +80,7 @@ class Trainer:
         self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
-            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*10), 0)):
+            with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
                 label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
 
                 tf.summary.image(
@@ -168,7 +168,7 @@ class Trainer:
         for epoch in range(self.epochs):
             st = time()
             print('Epoch {}'.format(epoch))
-            self.train(epoch)
+            self.train(epoch, repeat=3)
             print('Training an epoch took {0:1.0f}'.format(time() - st))
 
             print('Validating')

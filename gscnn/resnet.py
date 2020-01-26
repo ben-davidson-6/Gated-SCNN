@@ -116,7 +116,7 @@ def ResNet50V2(include_top=True,
                **kwargs):
     def stack_fn(x):
         x = stack(x, 64, 3, dilate=False, name='conv2')
-        x = stack(x, 128, 4, dilate=True, name='conv3')
+        x = stack(x, 128, 4, dilate=False, name='conv3')
         x = stack(x, 256, 6, dilate=True, name='conv4')
         x = stack(x, 512, 3, dilate=False, stride1=1, name='conv5')
         return x

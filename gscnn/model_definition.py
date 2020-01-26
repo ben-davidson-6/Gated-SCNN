@@ -173,13 +173,13 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         self.bn_2 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_1 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
+        self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
 
         self.bn_3 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_2 = AtrousConvolution(24, filters=out_channels, kernel_size=3)
+        self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
         self.bn_4 = tf.keras.layers.BatchNormalization()
-        self.atrous_conv_3 = AtrousConvolution(36, filters=out_channels, kernel_size=3)
+        self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
 
         # for backbone features
         self.bn_img = tf.keras.layers.BatchNormalization()
@@ -267,9 +267,9 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         return x
 
 
-class InceptionBackbone(tf.keras.layers.Layer):
+class ResnetBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
-        super(InceptionBackbone, self).__init__(**kwargs)
+        super(ResnetBackbone, self).__init__(**kwargs)
         backbone = Resnet50(
             include_top=False,
             weights='imagenet',
@@ -293,7 +293,7 @@ class GSCNN(tf.keras.Model):
         super(GSCNN, self).__init__(**kwargs)
 
         self.n_classes = n_classes
-        self.backbone = InceptionBackbone()
+        self.backbone = ResnetBackbone()
         self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
@@ -338,4 +338,4 @@ if __name__ == '__main__':
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
     m = GSCNN(2)
-    m(np.zeros([1, 750, 750, 3]))
+    m(np.zeros([1, 800, 800, 3]))

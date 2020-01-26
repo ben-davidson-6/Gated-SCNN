@@ -9,7 +9,7 @@ import imageio
 
 
 out_p = '/home/ben/projects/gated_shape_cnns/final_models/1/'
-weights_path = '/home/ben/venvs/py37/.guild/runs/09306376d4904d0995709ec0417d1cb1/logs/model/latest'
+weights_path = '/home/ben/projects/gated_shape_cnns/logs/model/best'
 
 
 def export():
@@ -61,6 +61,6 @@ def build_results():
 
 
 if __name__ == '__main__':
-    export()
-    show_single_example()
+    # export()
+    # show_single_example()
     build_results()
