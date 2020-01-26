@@ -4,7 +4,7 @@ from gscnn.model_definition import GSCNN
 from cityscapes.train_and_evaluate import Trainer
 import cityscapes.dataset
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
 
 batch_size = 8
 network_input_h = network_input_w = 800
@@ -28,7 +28,7 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     data_dir='/home/ben/datasets/cityscapes',)
 
 
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
+strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
     model = GSCNN(n_classes=cityscapes.N_CLASSES)
