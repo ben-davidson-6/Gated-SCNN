@@ -7,7 +7,7 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
 
 batch_size = 8
-network_input_h = network_input_w = 800
+network_input_h = network_input_w = 720
 max_crop_downsample = network_input_h/1024 * 0.90
 colour_aug_factor = 0.25
 mixup_val = None
