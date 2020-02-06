@@ -136,10 +136,12 @@ class Trainer:
                     self.train_step, args=(im, label, edge_label))
                 self.train_step_counter.assign_add(1)
 
+    @tf.function
     def val_epoch(self,):
         with self.val_writer.as_default():
             for im, label, edge_label in self.val_dataset:
-                self.forward_pass(im, label, edge_label, train=False, log=True)
+                self.strategy.experimental_run_v2(
+                    self.forward_pass, args=(im, label, edge_label, False, True))
                 self.val_step_counter.assign_add(1)
 
     def make_weight_path(self,):

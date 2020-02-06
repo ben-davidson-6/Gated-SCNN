@@ -117,7 +117,7 @@ class CityScapes:
 
     def build_validation_dataset(self):
         dataset = self.get_raw_tensor_dataset(train=False)
-        dataset = dataset.batch(2)
+        dataset = dataset.batch(4, drop_remainder=True)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         return dataset
