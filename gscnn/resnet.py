@@ -1,7 +1,10 @@
-from keras_applications.resnet_common import ResNet
 import tensorflow.keras.layers as layers
+
+from keras_applications.resnet_common import ResNet
 from tensorflow.python.keras.applications import keras_modules_injection
 from tensorflow.python.util.tf_export import keras_export
+
+from gscnn.sync_norm import SyncBatchNormalization
 
 
 @keras_export('keras.applications.resnet_v2.ResNet50V2',
@@ -29,7 +32,7 @@ def block2(x, filters, kernel_size=3, stride=1, dilate=False,
     """
     bn_axis = 3
 
-    preact = layers.BatchNormalization(
+    preact = SyncBatchNormalization(
         axis=bn_axis,
         epsilon=1.001e-5,
         name=name + '_preact_bn')(x)
@@ -51,7 +54,7 @@ def block2(x, filters, kernel_size=3, stride=1, dilate=False,
         strides=1,
         use_bias=False,
         name=name + '_1_conv')(preact)
-    x = layers.BatchNormalization(
+    x = SyncBatchNormalization(
         axis=bn_axis,
         epsilon=1.001e-5,
         name=name + '_1_bn')(x)
@@ -73,7 +76,7 @@ def block2(x, filters, kernel_size=3, stride=1, dilate=False,
             strides=stride,
             use_bias=False,
             name=name + '_2_conv')(x)
-    x = layers.BatchNormalization(
+    x = SyncBatchNormalization(
         axis=bn_axis,
         epsilon=1.001e-5,
         name=name + '_2_bn')(x)

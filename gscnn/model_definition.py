@@ -1,5 +1,6 @@
 import tensorflow as tf
 from gscnn.resnet import Resnet50
+from gscnn.sync_norm import SyncBatchNormalization
 
 
 def resize_to(x, target_t=None, target_shape=None):
@@ -13,11 +14,11 @@ def resize_to(x, target_t=None, target_shape=None):
 class GateConv(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(GateConv, self).__init__(**kwargs)
-        self.batch_norm_1 = tf.keras.layers.BatchNormalization()
+        self.batch_norm_1 = SyncBatchNormalization()
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
         self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False)
-        self.batch_norm_2 = tf.keras.layers.BatchNormalization()
+        self.batch_norm_2 = SyncBatchNormalization()
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
@@ -55,10 +56,10 @@ class GatedShapeConv(tf.keras.layers.Layer):
 class ResnetPreactUnit(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
-        self.bn_1 = tf.keras.layers.BatchNormalization()
+        self.bn_1 = SyncBatchNormalization()
         self.relu = tf.keras.layers.ReLU()
         self.conv_1 = None
-        self.bn_2 = tf.keras.layers.BatchNormalization()
+        self.bn_2 = SyncBatchNormalization()
         self.conv_2 = None
 
     def build(self, input_shape):
@@ -169,24 +170,24 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.relu = tf.keras.layers.ReLU()
 
         # for final output of backbone
-        self.bn_1 = tf.keras.layers.BatchNormalization()
+        self.bn_1 = SyncBatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
-        self.bn_2 = tf.keras.layers.BatchNormalization()
+        self.bn_2 = SyncBatchNormalization()
         self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
 
-        self.bn_3 = tf.keras.layers.BatchNormalization()
+        self.bn_3 = SyncBatchNormalization()
         self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
-        self.bn_4 = tf.keras.layers.BatchNormalization()
+        self.bn_4 = SyncBatchNormalization()
         self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
 
         # for backbone features
-        self.bn_img = tf.keras.layers.BatchNormalization()
+        self.bn_img = SyncBatchNormalization()
         self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # for shape features
-        self.bn_shape = tf.keras.layers.BatchNormalization()
+        self.bn_shape = SyncBatchNormalization()
         self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # 1x1 reduction convolutions
@@ -249,11 +250,11 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 class FinalLogitLayer(tf.keras.layers.Layer):
     def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
-        self.bn_1 = tf.keras.layers.BatchNormalization()
+        self.bn_1 = SyncBatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
-        self.bn_2 = tf.keras.layers.BatchNormalization()
+        self.bn_2 = SyncBatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
-        self.bn_3 = tf.keras.layers.BatchNormalization()
+        self.bn_3 = SyncBatchNormalization()
 
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
