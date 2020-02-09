@@ -110,7 +110,7 @@ class CityScapes:
         dataset = dataset.map(CityScapes.random_flip, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, train=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.map(self.resize_images, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.batch(self.batch_size)
+        dataset = dataset.batch(self.batch_size, drop_remainder=True)
         dataset = dataset.map(self.process_training_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         return dataset

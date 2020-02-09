@@ -8,7 +8,7 @@ from time import time
 
 class Trainer:
     def __init__(self, model,  train_dataset, val_dataset, epochs, optimiser, log_dir, model_dir, l1, l2, l3, l4):
-        self.weights = [l1, l2, l3, l4]
+        self.weights = tf.constant([l1, l2, l3, l4])
         self.model = model
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -16,6 +16,7 @@ class Trainer:
         self.optimiser = optimiser
         self.train_step_counter = tf.Variable(0, name='step_train', dtype=tf.int64)
         self.val_step_counter = tf.Variable(0, name='step_val', dtype=tf.int64)
+        self.training = tf.Variable(True, name='training', dtype=tf.bool)
 
         train_log_dir = os.path.join(log_dir, 'train')
         val_log_dir = os.path.join(log_dir, 'val')
@@ -69,9 +70,9 @@ class Trainer:
         pred_label_image = tf.gather(colour_array, flat_pred_label)
         return label_image, pred_label_image
 
-    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses, train):
-        step = self.train_step_counter if train else self.val_step_counter
-        with tf.summary.record_if(tf.logical_and(train, tf.equal(tf.math.mod(step, self.log_freq), 0))):
+    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses):
+        step = self.train_step_counter if self.training else self.val_step_counter
+        with tf.summary.record_if(tf.logical_and(self.training, tf.equal(tf.math.mod(step, self.log_freq), 0))):
             accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.calculate_log_tensors(logits, label, sub_losses)
 
             self.epoch_metrics['accuracy'].update_state(accuracy)
@@ -100,29 +101,28 @@ class Trainer:
             tf.summary.scalar('loss/batch_loss', loss, step=step)
             tf.summary.scalar('batch_accuracy', accuracy, step=step)
 
-    def forward_pass(self, im, label, edge_label, train, log=False):
-        out = self.model(im, training=train)
+    def forward_pass(self, im, label, edge_label):
+        out = self.model(im, training=self.training)
         prediction, shape_head = out[..., :-1], out[..., -1:]
         sub_losses = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
-        if log:
-            self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses, train)
+        self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
         return prediction, shape_head, sub_losses
 
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
-            prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label, train=True)
+            prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label)
             loss = sum(sub_losses)
             loss /= self.strategy.num_replicas_in_sync
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
-        self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses, train=True)
+        self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
 
-    def get_summary_writer(self, train):
-        return self.train_writer if train else self.val_writer
+    def get_summary_writer(self,):
+        return self.train_writer if self.training else self.val_writer
 
-    def log_metrics(self, train, epoch):
-        writer = self.train_writer if train else self.val_writer
+    def log_metrics(self, epoch):
+        writer = self.train_writer if self.training else self.val_writer
         with writer.as_default():
             for k in self.epoch_metrics:
                 tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
@@ -130,6 +130,7 @@ class Trainer:
 
     @tf.function
     def train_epoch(self, ):
+        self.training.assign(True)
         with self.train_writer.as_default():
             for im, label, edge_label in self.train_dataset:
                 self.strategy.experimental_run_v2(
@@ -138,10 +139,11 @@ class Trainer:
 
     @tf.function
     def val_epoch(self,):
+        self.training.assign(False)
         with self.val_writer.as_default():
             for im, label, edge_label in self.val_dataset:
                 self.strategy.experimental_run_v2(
-                    self.forward_pass, args=(im, label, edge_label, False, True))
+                    self.forward_pass, args=(im, label, edge_label))
                 self.val_step_counter.assign_add(1)
 
     def make_weight_path(self,):
@@ -150,7 +152,7 @@ class Trainer:
     def train(self, epoch,):
         print('Training')
         self.train_epoch()
-        self.log_metrics(train=True, epoch=epoch)
+        self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
         self.val_epoch()
@@ -162,7 +164,7 @@ class Trainer:
                 self.make_weight_path(),
                 save_format='tf')
             self.best_iou = self.epoch_metrics['mean_iou'].result()
-        self.log_metrics(train=False, epoch=epoch)
+        self.log_metrics(epoch=epoch)
         print('____ {} ____'.format(self.best_iou))
 
     def train_loop(self):
