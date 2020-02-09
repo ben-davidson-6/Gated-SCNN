@@ -149,7 +149,7 @@ class Trainer:
     def train(self, epoch,):
         print('Training')
         self.train_epoch()
-        with self.train_writer:
+        with self.train_writer.as_default():
             self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
@@ -162,7 +162,7 @@ class Trainer:
                 self.make_weight_path(),
                 save_format='tf')
             self.best_iou = self.epoch_metrics['mean_iou'].result()
-        with self.val_writer:
+        with self.val_writer.as_default():
             self.log_metrics(epoch=epoch)
         print('____ {} ____'.format(self.best_iou))
 
