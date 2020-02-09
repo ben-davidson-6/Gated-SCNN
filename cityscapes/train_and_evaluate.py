@@ -48,13 +48,13 @@ class Trainer:
         self.best_iou = -1.
 
     @tf.function
-    def calculate_log_tensors(self, logits, label, sub_losses):
+    def calculate_log_tensors(self, logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency):
         keep_mask = tf.reduce_any(label == 1., axis=-1)
 
         flat_label = tf.argmax(label, axis=-1)
         flat_pred_label = tf.argmax(tf.nn.softmax(logits), axis=-1)
 
-        loss = sum(sub_losses)
+        loss = seg_loss + edge_loss + edge_class_consistency + edge_consistency
 
         flat_label_masked = flat_label[keep_mask]
         flat_pred_label_masked = flat_pred_label[keep_mask]
@@ -70,10 +70,11 @@ class Trainer:
         pred_label_image = tf.gather(colour_array, flat_pred_label)
         return label_image, pred_label_image
 
-    def log_pass(self, im, label, edge_label, logits, shape_head, sub_losses):
+    def log_pass(self, im, label, edge_label, logits, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency):
         step = self.train_step_counter if self.training else self.val_step_counter
         with tf.summary.record_if(tf.logical_and(self.training, tf.equal(tf.math.mod(step, self.log_freq), 0))):
-            accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.calculate_log_tensors(logits, label, sub_losses)
+            accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.calculate_log_tensors(
+                logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
 
             self.epoch_metrics['accuracy'].update_state(accuracy)
             self.epoch_metrics['loss'].update_state(loss)
@@ -93,7 +94,6 @@ class Trainer:
             #         tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
             #         step=step,
             #         max_outputs=1)
-            seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
             tf.summary.scalar('loss/seg_loss', seg_loss, step=step)
             tf.summary.scalar('loss/edge_loss', edge_loss, step=step)
             tf.summary.scalar('loss/edge_class_consistency', edge_class_consistency, step=step)
@@ -104,9 +104,10 @@ class Trainer:
     def forward_pass(self, im, label, edge_label):
         out = self.model(im, training=self.training)
         prediction, shape_head = out[..., :-1], out[..., -1:]
-        sub_losses = gscnn_loss.loss(
+        seg_loss, edge_loss, edge_class_consistency, edge_consistency = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
-        self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
+        self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
+        sub_losses = seg_loss, edge_loss, edge_class_consistency, edge_consistency
         return prediction, shape_head, sub_losses
 
     def train_step(self, im, label, edge_label):
@@ -116,17 +117,13 @@ class Trainer:
             loss /= self.strategy.num_replicas_in_sync
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
-        self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
-
-    def get_summary_writer(self,):
-        return self.train_writer if self.training else self.val_writer
+        seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
+        self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
 
     def log_metrics(self, epoch):
-        writer = self.train_writer if self.training else self.val_writer
-        with writer.as_default():
-            for k in self.epoch_metrics:
-                tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
-                self.epoch_metrics[k].reset_states()
+        for k in self.epoch_metrics:
+            tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
+            self.epoch_metrics[k].reset_states()
 
     @tf.function
     def train_epoch(self, ):
@@ -152,7 +149,8 @@ class Trainer:
     def train(self, epoch,):
         print('Training')
         self.train_epoch()
-        self.log_metrics(epoch=epoch)
+        with self.train_writer:
+            self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
         self.val_epoch()
@@ -164,7 +162,8 @@ class Trainer:
                 self.make_weight_path(),
                 save_format='tf')
             self.best_iou = self.epoch_metrics['mean_iou'].result()
-        self.log_metrics(epoch=epoch)
+        with self.val_writer:
+            self.log_metrics(epoch=epoch)
         print('____ {} ____'.format(self.best_iou))
 
     def train_loop(self):
