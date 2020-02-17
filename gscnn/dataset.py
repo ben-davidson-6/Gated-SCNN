@@ -29,7 +29,7 @@ class Dataset:
         return label
 
     def crop_size(self, all_input_shape):
-        max_crop_size = tf.stack([1024, 1024])
+        max_crop_size = tf.stack([all_input_shape[0], all_input_shape[1]])
         reduction = tf.random.uniform(
             shape=[],
             minval=self.max_crop_downsample,
