@@ -1,5 +1,5 @@
 import tensorflow as tf
-from gscnn.resnet import Resnet50
+from gscnn.atrous_inception import build_inception
 from gscnn.sync_norm import SyncBatchNormalization
 
 
@@ -271,17 +271,14 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 class ResnetBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ResnetBackbone, self).__init__(**kwargs)
-        backbone = Resnet50(
-            include_top=False,
-            weights='imagenet',
-            input_shape=[None, None, 3])
+        backbone = build_inception()
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('conv2_block3_out').output,
-                's2': backbone.get_layer('conv3_block4_out').output,
-                's3': backbone.get_layer('conv4_block6_out').output,
-                's4': backbone.get_layer('post_relu').output,
+                's1': backbone.get_layer('mixed1').output,
+                's2': backbone.get_layer('mixed2').output,
+                's3': backbone.get_layer('mixed7').output,
+                's4': backbone.get_layer('mixed10').output,
             })
 
     def call(self, inputs, training=None):

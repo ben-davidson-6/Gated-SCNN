@@ -1,10 +1,11 @@
 import tensorflow as tf
+import os
 
 from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
 import cityscapes.dataset
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2, 3"
 
 batch_size = 8
 network_input_h = network_input_w = 780
@@ -25,7 +26,7 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     network_input_w,
     max_crop_downsample,
     colour_aug_factor,
-    data_dir='/home/ben/datasets/cityscapes',)
+    data_dir='/media/ben/datasets/cityscapes',)
 
 
 strategy = tf.distribute.MirroredStrategy()

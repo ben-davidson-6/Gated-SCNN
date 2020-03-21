@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="ben@10.12.14.199:22">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Copy of project-level server 'LondonServer'" showNewOnSourceInSync="false">
     <serverData>
-      <paths name="ben@10.12.14.199:22">
+      <paths name="Copy of project-level server 'LondonServer'">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/ben/projects/gated_shape_cnns" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/ben/projects/gated_shape_cnns" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
