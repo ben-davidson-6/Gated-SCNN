@@ -268,9 +268,9 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         return x
 
 
-class ResnetBackbone(tf.keras.layers.Layer):
+class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
-        super(ResnetBackbone, self).__init__(**kwargs)
+        super(InceptionBackbone, self).__init__(**kwargs)
         backbone = build_inception()
         self.backbone = tf.keras.Model(
             backbone.input,
@@ -291,7 +291,7 @@ class GSCNN(tf.keras.Model):
         super(GSCNN, self).__init__(**kwargs)
 
         self.n_classes = n_classes
-        self.backbone = ResnetBackbone()
+        self.backbone = InceptionBackbone()
         self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
