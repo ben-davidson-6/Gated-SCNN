@@ -334,5 +334,7 @@ if __name__ == '__main__':
     import numpy as np
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    m = GSCNN(2)
-    m(np.zeros([1, 800, 800, 3]))
+    b = tf.keras.layers.BatchNormalization()
+    a = tf.Variable(False, name='training', dtype=tf.bool)
+
+    print(b._get_training_value(a))
