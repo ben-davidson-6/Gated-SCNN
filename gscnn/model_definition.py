@@ -1,6 +1,6 @@
 import tensorflow as tf
 from gscnn.atrous_inception import build_inception
-from gscnn.sync_norm import SyncBatchNormalization
+from gscnn.sync_norm import BatchNormalization
 
 
 def resize_to(x, target_t=None, target_shape=None):
@@ -14,11 +14,11 @@ def resize_to(x, target_t=None, target_shape=None):
 class GateConv(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(GateConv, self).__init__(**kwargs)
-        self.batch_norm_1 = SyncBatchNormalization()
+        self.batch_norm_1 = BatchNormalization()
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
         self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False)
-        self.batch_norm_2 = SyncBatchNormalization()
+        self.batch_norm_2 = BatchNormalization()
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
@@ -56,10 +56,10 @@ class GatedShapeConv(tf.keras.layers.Layer):
 class ResnetPreactUnit(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
-        self.bn_1 = SyncBatchNormalization()
+        self.bn_1 = BatchNormalization()
         self.relu = tf.keras.layers.ReLU()
         self.conv_1 = None
-        self.bn_2 = SyncBatchNormalization()
+        self.bn_2 = BatchNormalization()
         self.conv_2 = None
 
     def build(self, input_shape):
@@ -170,24 +170,24 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.relu = tf.keras.layers.ReLU()
 
         # for final output of backbone
-        self.bn_1 = SyncBatchNormalization()
+        self.bn_1 = BatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
-        self.bn_2 = SyncBatchNormalization()
+        self.bn_2 = BatchNormalization()
         self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
 
-        self.bn_3 = SyncBatchNormalization()
+        self.bn_3 = BatchNormalization()
         self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
-        self.bn_4 = SyncBatchNormalization()
+        self.bn_4 = BatchNormalization()
         self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
 
         # for backbone features
-        self.bn_img = SyncBatchNormalization()
+        self.bn_img = BatchNormalization()
         self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # for shape features
-        self.bn_shape = SyncBatchNormalization()
+        self.bn_shape = BatchNormalization()
         self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
 
         # 1x1 reduction convolutions
@@ -250,11 +250,11 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 class FinalLogitLayer(tf.keras.layers.Layer):
     def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
-        self.bn_1 = SyncBatchNormalization()
+        self.bn_1 = BatchNormalization()
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
-        self.bn_2 = SyncBatchNormalization()
+        self.bn_2 = BatchNormalization()
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
-        self.bn_3 = SyncBatchNormalization()
+        self.bn_3 = BatchNormalization()
 
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
 
@@ -275,8 +275,8 @@ class InceptionBackbone(tf.keras.layers.Layer):
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('mixed1').output,
-                's2': backbone.get_layer('mixed2').output,
+                's1': backbone.get_layer('mixed2').output,
+                's2': backbone.get_layer('mixed4').output,
                 's3': backbone.get_layer('mixed7').output,
                 's4': backbone.get_layer('mixed10').output,
             })
@@ -334,7 +334,6 @@ if __name__ == '__main__':
     import numpy as np
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    b = tf.keras.layers.BatchNormalization()
-    a = tf.Variable(False, name='training', dtype=tf.bool)
-
-    print(b._get_training_value(a))
+    g = GSCNN(10)
+    # g(np.zeros([1, 200, 200, 3]))
+    # g.summary(line_length=400)

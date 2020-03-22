@@ -5,9 +5,9 @@ from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
 import cityscapes.dataset
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2, 3"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1, 2, 3"
 
-batch_size = 12
+batch_size = 16
 network_input_h = network_input_w = 620
 max_crop_downsample = 0.5
 colour_aug_factor = 0.25
@@ -34,11 +34,10 @@ with strategy.scope():
     model = GSCNN(n_classes=cityscapes.N_CLASSES)
     momentum = 0.9
     learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
-        0.007,
+        1e-2,
         n_steps_in_epoch * 230,
         0.000001)
-    optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum
-                                        )
+    optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum)
     train_dataset = strategy.experimental_distribute_dataset(
         cityscapes_dataset_loader.build_training_dataset())
     validation_dataset = strategy.experimental_distribute_dataset(

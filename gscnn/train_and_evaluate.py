@@ -133,7 +133,6 @@ class Trainer:
                 self.strategy.experimental_run_v2(
                     self.train_step, args=(im, label, edge_label))
                 self.train_step_counter.assign_add(1)
-
     @tf.function
     def val_epoch(self,):
         self.training.assign(False)

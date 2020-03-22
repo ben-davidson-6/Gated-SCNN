@@ -1,4 +1,5 @@
 import tensorflow as tf
+import random
 
 
 class Dataset:
@@ -84,7 +85,8 @@ class Dataset:
 
     def process_training_batch(self, images, labels, edges):
         labels, edges = self.flat_to_one_hot(labels, edges)
-        images = self.colour_jitter(images)
+        if random.random() > 0.5:
+            images = self.colour_jitter(images)
         return images, labels, edges
 
     def process_validation_batch(self, images, labels, edges):

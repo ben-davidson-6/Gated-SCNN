@@ -9,8 +9,8 @@ from tensorflow.python.keras import backend as K
 import tensorflow.keras.layers
 
 
-class SyncBatchNormalization(tensorflow.keras.layers.BatchNormalization):
-
+class BatchNormalization(tensorflow.keras.layers.BatchNormalization):
+    """Sync norm"""
     def _calculate_mean_and_var(self, x, axes, keep_dims):
         with ops.name_scope('moments', values=[x, axes]):
             # The dynamic range of fp16 is too limited to support the collection of
@@ -75,15 +75,19 @@ if __name__ == '__main__':
     import tensorflow as tf
     import numpy as np
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2"
-    strategy = tf.distribute.MirroredStrategy()
-    data = np.array([1., -1, 1, -1], dtype=np.float32)
-
-    with strategy.scope():
-        s = tf.keras.layers.BatchNormalization()
-        dataset = tf.data.Dataset.from_tensor_slices(data)
-        dataset = dataset.batch(2)
-        train_dataset = strategy.experimental_distribute_dataset(dataset)
-        for b in train_dataset:
-            strategy.experimental_run_v2(
-                s, args=(b, True))
+    t = tf.Variable(False, dtype=tf.bool)
+    print(t)
+    t.assign(True)
+    print(t)
+    # os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2"
+    # strategy = tf.distribute.MirroredStrategy()
+    # data = np.array([1., -1, 1, -1], dtype=np.float32)
+    #
+    # with strategy.scope():
+    #     s = tf.keras.layers.BatchNormalization()
+    #     dataset = tf.data.Dataset.from_tensor_slices(data)
+    #     dataset = dataset.batch(2)
+    #     train_dataset = strategy.experimental_distribute_dataset(dataset)
+    #     for b in train_dataset:
+    #         strategy.experimental_run_v2(
+    #             s, args=(b, True))
