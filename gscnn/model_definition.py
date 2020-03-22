@@ -304,7 +304,6 @@ class GSCNN(tf.keras.Model):
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
-    @tf.function
     def call(self, inputs, training=None, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])

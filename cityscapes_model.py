@@ -7,14 +7,13 @@ import cityscapes.dataset
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2, 3"
 
-batch_size = 8
-network_input_h = network_input_w = 780
-max_crop_downsample = network_input_h/1024 * 0.90
+batch_size = 12
+network_input_h = network_input_w = 620
+max_crop_downsample = 0.5
 colour_aug_factor = 0.25
 mixup_val = None
-lr = 0.001
 l1 = 1.
-l2 = 20.
+l2 = 10.
 l3 = 1.
 l4 = 1.
 n_train_images = 2975
@@ -33,11 +32,13 @@ strategy = tf.distribute.MirroredStrategy()
 
 with strategy.scope():
     model = GSCNN(n_classes=cityscapes.N_CLASSES)
+    momentum = 0.9
     learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
         0.007,
         n_steps_in_epoch * 230,
         0.000001)
-    optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn)
+    optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum
+                                        )
     train_dataset = strategy.experimental_distribute_dataset(
         cityscapes_dataset_loader.build_training_dataset())
     validation_dataset = strategy.experimental_distribute_dataset(

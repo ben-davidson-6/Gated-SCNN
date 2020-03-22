@@ -4,6 +4,7 @@ import cityscapes
 
 from gscnn.dataset import Dataset
 
+
 class CityScapes(Dataset):
 
     def __init__(
