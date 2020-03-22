@@ -23,7 +23,7 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = tf.keras.layers.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 
@@ -50,10 +50,6 @@ def modify_layers(model):
 
 def build_inception():
 
-    # monkey patch batch normalisation
-    original_batch = tf.keras.layers.BatchNormalization
-    tf.keras.layers.BatchNormalization = gscnn.sync_norm.BatchNormalization
-
     # monkey patch keras
     original_conv2d_bn = keras_applications.inception_v3.conv2d_bn
     keras_applications.inception_v3.conv2d_bn = conv2d_sync_bn
@@ -73,7 +69,6 @@ def build_inception():
     # atrous_inception.summary(line_length=300)
 
     # reset monkey patch
-    tf.keras.layers.BatchNormalization = original_batch
     keras_applications.inception_v3.conv2d_bn = original_conv2d_bn
 
     return atrous_inception
