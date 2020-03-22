@@ -304,6 +304,7 @@ class GSCNN(tf.keras.Model):
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
+    @tf.function
     def call(self, inputs, training=None, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
@@ -334,6 +335,12 @@ if __name__ == '__main__':
     import numpy as np
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    g = GSCNN(10)
-    # g(np.zeros([1, 200, 200, 3]))
-    # g.summary(line_length=400)
+    g = GSCNN(n_classes=2)
+    before = g.backbone.backbone.get_layer('batch_normalization_93').moving_mean.numpy()[0]
+
+    x = g(np.random.random([1, 200, 200, 3]), training=True)
+
+    after = g.backbone.backbone.get_layer('batch_normalization_93').moving_mean.numpy()[0]
+    x = g(np.random.random([1, 200, 200, 3]), training=False)
+
+    print(before, after)

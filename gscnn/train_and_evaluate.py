@@ -72,28 +72,30 @@ class Trainer:
 
     def log_pass(self, im, label, edge_label, logits, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency):
         step = self.train_step_counter if self.training else self.val_step_counter
-        with tf.summary.record_if(tf.logical_and(self.training, tf.equal(tf.math.mod(step, self.log_freq), 0))):
-            accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.calculate_log_tensors(
-                logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
+        accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label = self.calculate_log_tensors(
+            logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
 
-            self.epoch_metrics['accuracy'].update_state(accuracy)
-            self.epoch_metrics['loss'].update_state(loss)
-            self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
+        self.epoch_metrics['accuracy'].update_state(accuracy)
+        self.epoch_metrics['loss'].update_state(loss)
+        self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
-            # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
-            # with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
-            #     label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
-            #
-            #     tf.summary.image(
-            #         'edge_comparison',
-            #         tf.concat([edge_label[..., 1:], shape_head], axis=2),
-            #         step=step,
-            #         max_outputs=1)
-            #     tf.summary.image(
-            #         'label_comparison',
-            #         tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
-            #         step=step,
-            #         max_outputs=1)
+        # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
+        # with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
+        #     label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
+        #
+        #     tf.summary.image(
+        #         'edge_comparison',
+        #         tf.concat([edge_label[..., 1:], shape_head], axis=2),
+        #         step=step,
+        #         max_outputs=1)
+        #     tf.summary.image(
+        #         'label_comparison',
+        #         tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
+        #         step=step,
+        #         max_outputs=1)
+
+        with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
+
             tf.summary.scalar('loss/seg_loss', seg_loss, step=step)
             tf.summary.scalar('loss/edge_loss', edge_loss, step=step)
             tf.summary.scalar('loss/edge_class_consistency', edge_class_consistency, step=step)
@@ -133,6 +135,7 @@ class Trainer:
                 self.strategy.experimental_run_v2(
                     self.train_step, args=(im, label, edge_label))
                 self.train_step_counter.assign_add(1)
+
     @tf.function
     def val_epoch(self,):
         self.training.assign(False)

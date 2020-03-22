@@ -32,4 +32,17 @@ class CityScapes(Dataset):
 
 
 if __name__ == '__main__':
-    pass
+    import matplotlib.pyplot as plt
+    import numpy as np
+    d = CityScapes(4, 200, 200, 0.5, 0.25, data_dir='/media/ben/datasets/cityscapes')
+    for v in d.build_training_dataset():
+
+        for i in v:
+            i = i[0]
+            i = i.numpy()
+            print(np.max(i), i.shape, i.dtype)
+            if i.shape[-1] != 3:
+                i = np.argmax(i, axis=-1)
+            plt.imshow(i.astype(np.uint8))
+            plt.show()
+        break

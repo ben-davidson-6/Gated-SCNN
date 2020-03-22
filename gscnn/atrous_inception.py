@@ -23,7 +23,9 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name, momentum=0.9)(x)
+    # x = tf.keras.layers.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 
