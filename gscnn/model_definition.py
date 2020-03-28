@@ -17,13 +17,13 @@ class GateConv(tf.keras.layers.Layer):
         self.batch_norm_1 = BatchNormalization()
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
-        self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False)
+        self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.batch_norm_2 = BatchNormalization()
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
         in_channels = input_shape[-1]
-        self.conv_1 = tf.keras.layers.Conv2D(in_channels, kernel_size=1)
+        self.conv_1 = tf.keras.layers.Conv2D(in_channels, kernel_size=1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         x = self.batch_norm_1(x, training=training)
@@ -43,7 +43,7 @@ class GatedShapeConv(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         feature_channels = input_shape[0][-1]
-        self.conv_1 = tf.keras.layers.Conv2D(feature_channels, 1)
+        self.conv_1 = tf.keras.layers.Conv2D(feature_channels, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         feature_map, shape_map = x
@@ -64,8 +64,8 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         cs = input_shape[-1]
-        self.conv_1 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False)
-        self.conv_2 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False)
+        self.conv_1 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_2 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         shortcut = x
@@ -86,18 +86,18 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.gated_conv_2 = GatedShapeConv()
         self.gated_conv_3 = GatedShapeConv()
 
-        self.shape_reduction_2 = tf.keras.layers.Conv2D(1, 1)
-        self.shape_reduction_3 = tf.keras.layers.Conv2D(1, 1)
-        self.shape_reduction_4 = tf.keras.layers.Conv2D(1, 1)
+        self.shape_reduction_2 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.shape_reduction_3 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.shape_reduction_4 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         self.res_1 = ResnetPreactUnit()
         self.res_2 = ResnetPreactUnit()
         self.res_3 = ResnetPreactUnit()
 
-        self.reduction_conv_1 = tf.keras.layers.Conv2D(32, 1)
-        self.reduction_conv_2 = tf.keras.layers.Conv2D(16, 1)
-        self.reduction_conv_3 = tf.keras.layers.Conv2D(8, 1)
-        self.reduction_conv_4 = tf.keras.layers.Conv2D(1, 1, use_bias=False)
+        self.reduction_conv_1 = tf.keras.layers.Conv2D(32, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_2 = tf.keras.layers.Conv2D(16, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_3 = tf.keras.layers.Conv2D(8, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_4 = tf.keras.layers.Conv2D(1, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=None):
@@ -131,7 +131,7 @@ class ShapeStream(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ShapeStream, self).__init__(**kwargs)
         self.shape_attention = ShapeAttention()
-        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, )
+        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=None):
@@ -157,7 +157,8 @@ class AtrousConvolution(tf.keras.layers.Layer):
         self.kernel = self.add_weight(
             name='kernel',
             shape=[self.kernel_size, self.kernel_size, in_channels, self.out_channels],
-            initializer=tf.keras.initializers.GlorotNormal())
+            initializer=tf.keras.initializers.GlorotNormal(),
+            regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         return tf.nn.atrous_conv2d(x, self.kernel, self.rate, padding='SAME')
@@ -171,7 +172,7 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 
         # for final output of backbone
         self.bn_1 = BatchNormalization()
-        self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
+        self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         self.bn_2 = BatchNormalization()
         self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
@@ -184,15 +185,15 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 
         # for backbone features
         self.bn_img = BatchNormalization()
-        self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
+        self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # for shape features
         self.bn_shape = BatchNormalization()
-        self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False)
+        self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # 1x1 reduction convolutions
-        self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False)
-        self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False)
+        self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         image_features, shape_features, intermediate_rep = x
@@ -251,12 +252,12 @@ class FinalLogitLayer(tf.keras.layers.Layer):
     def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
         self.bn_1 = BatchNormalization()
-        self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
+        self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.bn_2 = BatchNormalization()
-        self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu)
+        self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.bn_3 = BatchNormalization()
 
-        self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False)
+        self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         x = self.bn_1(x, training=training)
@@ -304,7 +305,7 @@ class GSCNN(tf.keras.Model):
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
-    @tf.function
+    @tf.function(experimental_relax_shapes=True)
     def call(self, inputs, training=None, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
@@ -336,11 +337,5 @@ if __name__ == '__main__':
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
     g = GSCNN(n_classes=2)
-    before = g.backbone.backbone.get_layer('batch_normalization_93').moving_mean.numpy()[0]
+    g(np.random.random([1, 200, 200, 3]))
 
-    x = g(np.random.random([1, 200, 200, 3]), training=True)
-
-    after = g.backbone.backbone.get_layer('batch_normalization_93').moving_mean.numpy()[0]
-    x = g(np.random.random([1, 200, 200, 3]), training=False)
-
-    print(before, after)

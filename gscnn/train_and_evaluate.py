@@ -79,7 +79,7 @@ class Trainer:
         self.epoch_metrics['loss'].update_state(loss)
         self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
-        # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
+        # # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
         # with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
         #     label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
         #
@@ -117,6 +117,8 @@ class Trainer:
             prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label)
             loss = sum(sub_losses)
             loss /= self.strategy.num_replicas_in_sync
+            regularization_loss = tf.add_n(self.model.losses)
+            loss += regularization_loss
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses

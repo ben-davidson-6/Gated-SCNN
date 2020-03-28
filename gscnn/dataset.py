@@ -10,12 +10,14 @@ class Dataset:
             network_input_h,
             network_input_w,
             max_crop_downsample,
-            colour_aug_factor):
+            colour_aug_factor,
+            debug):
         self.batch_size = batch_size
         self.network_input_h = network_input_h
         self.network_input_w =  network_input_w
         self.max_crop_downsample = max_crop_downsample
         self.colour_aug_factor = colour_aug_factor
+        self.debug = debug
 
     @staticmethod
     def image_path_process(path):
@@ -30,7 +32,7 @@ class Dataset:
         return label
 
     def crop_size(self, all_input_shape):
-        max_crop_size = tf.stack([all_input_shape[0], all_input_shape[1]])
+        max_crop_size = tf.stack([all_input_shape[0], all_input_shape[0]])
         reduction = tf.random.uniform(
             shape=[],
             minval=self.max_crop_downsample,
@@ -110,6 +112,8 @@ class Dataset:
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
         dataset = dataset.map(self.process_training_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        if self.debug:
+            dataset = dataset.take(1)
         return dataset
 
     def build_validation_dataset(self):
@@ -117,6 +121,8 @@ class Dataset:
         dataset = dataset.batch(8, drop_remainder=True)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        if self.debug:
+            dataset = dataset.take(1)
         return dataset
 
 

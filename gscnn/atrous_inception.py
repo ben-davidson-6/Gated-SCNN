@@ -23,9 +23,7 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name, momentum=0.9)(x)
-    # x = tf.keras.layers.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
-
+    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 
@@ -64,6 +62,9 @@ def build_inception():
         weights='imagenet',
         input_shape=[None, None, 3])
     modify_layers(model)
+
+    for layer in model.layers:
+        layer.kernel_regularizer = tf.keras.regularizers.l2(l=1e-4)
 
     # rebuild new inception
     atrous_inception = tf.keras.models.model_from_json(model.to_json())

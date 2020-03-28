@@ -1,14 +1,13 @@
 import tensorflow as tf
-import os
+
+import cityscapes.dataset
 
 from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
-import cityscapes.dataset
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1, 2, 3"
 
 batch_size = 16
-network_input_h = network_input_w = 680
+network_input_h = network_input_w = 650
 max_crop_downsample = 0.5
 colour_aug_factor = 0.25
 mixup_val = None
