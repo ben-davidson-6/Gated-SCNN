@@ -47,7 +47,7 @@ class Trainer:
 
         self.best_iou = -1.
 
-    @tf.function(experimental_relax_shapes=True)
+    # @tf.function(experimental_relax_shapes=True)
     def calculate_log_tensors(self, logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency):
         keep_mask = tf.reduce_any(label == 1., axis=-1)
 
@@ -63,7 +63,7 @@ class Trainer:
         accuracy = correct / tf.cast(total_vals, tf.float32)
         return accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label
 
-    @tf.function(experimental_relax_shapes=True)
+    # @tf.function(experimental_relax_shapes=True)
     def calculate_images(self, flat_label, flat_pred_label):
         colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
         label_image = tf.gather(colour_array, flat_label)
@@ -115,7 +115,7 @@ class Trainer:
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
             prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label)
-            loss = sum(sub_losses)
+            loss = tf.add_n(sub_losses)
             loss /= self.strategy.num_replicas_in_sync
             regularization_loss = tf.add_n(self.model.losses)
             loss += regularization_loss

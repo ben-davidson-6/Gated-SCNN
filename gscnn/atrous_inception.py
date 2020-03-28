@@ -73,7 +73,6 @@ def build_inception():
 
     # reset monkey patch
     keras_applications.inception_v3.conv2d_bn = original_conv2d_bn
-
     return atrous_inception
 
 

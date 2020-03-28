@@ -6,18 +6,22 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.keras import backend as K
 
-import tensorflow.keras.layers
+import tensorflow as tf
 
 
-class BatchNormalization(tensorflow.keras.layers.BatchNormalization):
+class BatchNormalization(tf.keras.layers.BatchNormalization):
     """Sync norm"""
+
+    def __init__(self, *args, **kwargs):
+        super(BatchNormalization, self).__init__(*args, fused=False, **kwargs)
+
     def _calculate_mean_and_var(self, x, axes, keep_dims):
         with ops.name_scope('moments', values=[x, axes]):
             # The dynamic range of fp16 is too limited to support the collection of
             # sufficient statistics. As a workaround we simply perform the operations
             # on 32-bit floats before converting the mean and variance back to fp16
             y = math_ops.cast(x, dtypes.float32) if x.dtype == dtypes.float16 else x
-            replica_ctx = ds.get_cross_replica_context()
+            replica_ctx = ds.get_replica_context()
             if replica_ctx:
                 local_sum = math_ops.reduce_sum(y, axis=axes, keepdims=True)
                 local_squared_sum = math_ops.reduce_sum(math_ops.square(y), axis=axes,
@@ -35,7 +39,7 @@ class BatchNormalization(tensorflow.keras.layers.BatchNormalization):
                 mean = y_sum / multiplier
                 y_squared_mean = y_squared_sum / multiplier
                 # var = E(x^2) - E(x)^2
-                variance = y_squared_mean - math_ops.square(mean)
+                variance = y_squared_mean - tf.stop_gradient(math_ops.square(mean))
             else:
                 # Compute true mean while keeping the dims for proper broadcasting.
                 mean = math_ops.reduce_mean(y, axes, keepdims=True, name='mean')
