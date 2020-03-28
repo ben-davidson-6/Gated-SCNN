@@ -28,6 +28,8 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
 
 
 strategy = tf.distribute.MirroredStrategy()
+
+
 with strategy.scope():
     model = GSCNN(n_classes=cityscapes.N_CLASSES)
     momentum = 0.9

@@ -39,7 +39,7 @@ class BatchNormalization(tf.keras.layers.BatchNormalization):
                 mean = y_sum / multiplier
                 y_squared_mean = y_squared_sum / multiplier
                 # var = E(x^2) - E(x)^2
-                variance = y_squared_mean - tf.stop_gradient(math_ops.square(mean))
+                variance = y_squared_mean - math_ops.square(mean)
             else:
                 # Compute true mean while keeping the dims for proper broadcasting.
                 mean = math_ops.reduce_mean(y, axes, keepdims=True, name='mean')

@@ -89,7 +89,7 @@ def weighted_cross_entropy(y_true, y_pred):
     return loss
 
 
-@tf.function(experimental_relax_shapes=True)
+# @tf.function(experimental_relax_shapes=True)
 def loss(gt_label, logits, shape_head, edge_label, loss_weights):
 
     keep_mask = tf.reduce_any(gt_label == 1., axis=-1)

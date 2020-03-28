@@ -108,7 +108,7 @@ class Trainer:
         prediction, shape_head = out[..., :-1], out[..., -1:]
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
-        self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
+        # self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
         sub_losses = seg_loss, edge_loss, edge_class_consistency, edge_consistency
         return prediction, shape_head, sub_losses
 
