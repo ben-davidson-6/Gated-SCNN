@@ -17,7 +17,7 @@ class BatchNormalization(tensorflow.keras.layers.BatchNormalization):
             # sufficient statistics. As a workaround we simply perform the operations
             # on 32-bit floats before converting the mean and variance back to fp16
             y = math_ops.cast(x, dtypes.float32) if x.dtype == dtypes.float16 else x
-            replica_ctx = ds.get_replica_context()
+            replica_ctx = ds.get_cross_replica_context()
             if replica_ctx:
                 local_sum = math_ops.reduce_sum(y, axis=axes, keepdims=True)
                 local_squared_sum = math_ops.reduce_sum(math_ops.square(y), axis=axes,
