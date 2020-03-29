@@ -1,6 +1,5 @@
 import tensorflow as tf
-import gscnn.sync_norm
-import keras_applications.inception_v3
+import tensorflow.python.keras.applications.inception_v3
 
 
 def conv2d_sync_bn(x,
@@ -23,7 +22,7 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = gscnn.sync_norm.BatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+    x = tf.keras.layers.experimental.SyncBatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 
@@ -51,8 +50,8 @@ def modify_layers(model):
 def build_inception():
 
     # monkey patch keras
-    original_conv2d_bn = keras_applications.inception_v3.conv2d_bn
-    keras_applications.inception_v3.conv2d_bn = conv2d_sync_bn
+    original_conv2d_bn = tensorflow.python.keras.applications.inception_v3.conv2d_bn
+    tensorflow.python.keras.applications.inception_v3.conv2d_bn = conv2d_sync_bn
 
     # build original model, save weights, we will modify the layers
     # so that the dilation rate of various convolutions is larger
@@ -64,7 +63,7 @@ def build_inception():
     modify_layers(model)
 
     for layer in model.layers:
-        layer.kernel_regularizer = tf.keras.regularizers.l2(l=1e-4)
+        layer.kernel_regularizer = tf.keras.regularizers.l2(l=1e-6)
 
     # rebuild new inception
     atrous_inception = tf.keras.models.model_from_json(model.to_json())
@@ -72,7 +71,7 @@ def build_inception():
     # atrous_inception.summary(line_length=300)
 
     # reset monkey patch
-    keras_applications.inception_v3.conv2d_bn = original_conv2d_bn
+    tensorflow.python.keras.applications.inception_v3 = original_conv2d_bn
     return atrous_inception
 
 

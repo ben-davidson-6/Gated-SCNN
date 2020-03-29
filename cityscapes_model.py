@@ -8,8 +8,8 @@ from gscnn.train_and_evaluate import Trainer
 
 batch_size = 16
 network_input_h = network_input_w = 650
-max_crop_downsample = 0.5
-colour_aug_factor = 0.25
+max_crop_downsample = 0.4
+colour_aug_factor = 0.1
 mixup_val = None
 l1 = 1.
 l2 = 10.
@@ -24,10 +24,12 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     network_input_w,
     max_crop_downsample,
     colour_aug_factor,
-    data_dir='/media/ben/datasets/cityscapes',)
+    data_dir='/media/ben/datasets/cityscapes')
 
 
 strategy = tf.distribute.MirroredStrategy()
+# strategy = tf.distribute.OneDeviceStrategy('/gpu:0')
+
 
 
 with strategy.scope():

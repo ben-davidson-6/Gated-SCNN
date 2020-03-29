@@ -63,7 +63,6 @@ class Trainer:
         accuracy = correct / tf.cast(total_vals, tf.float32)
         return accuracy, loss, flat_label_masked, flat_pred_label_masked, flat_label, flat_pred_label
 
-    # @tf.function(experimental_relax_shapes=True)
     def calculate_images(self, flat_label, flat_pred_label):
         colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
         label_image = tf.gather(colour_array, flat_label)
@@ -108,7 +107,7 @@ class Trainer:
         prediction, shape_head = out[..., :-1], out[..., -1:]
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
-        # self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
+        self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
         sub_losses = seg_loss, edge_loss, edge_class_consistency, edge_consistency
         return prediction, shape_head, sub_losses
 
@@ -130,21 +129,27 @@ class Trainer:
             self.epoch_metrics[k].reset_states()
 
     @tf.function
+    def distributed_train_step(self, im, label, edge_label):
+        self.strategy.run(
+            self.train_step, args=(im, label, edge_label))
+
     def train_epoch(self, ):
         self.training.assign(True)
         with self.train_writer.as_default():
             for im, label, edge_label in self.train_dataset:
-                self.strategy.experimental_run_v2(
-                    self.train_step, args=(im, label, edge_label))
+                self.distributed_train_step(im, label, edge_label)
                 self.train_step_counter.assign_add(1)
 
     @tf.function
+    def distributed_forward_pass(self, im, label, edge_label):
+        self.strategy.run(
+            self.forward_pass, args=(im, label, edge_label))
+
     def val_epoch(self,):
         self.training.assign(False)
         with self.val_writer.as_default():
             for im, label, edge_label in self.val_dataset:
-                self.strategy.experimental_run_v2(
-                    self.forward_pass, args=(im, label, edge_label))
+                self.distributed_forward_pass(im, label, edge_label)
                 self.val_step_counter.assign_add(1)
 
     def make_weight_path(self,):
@@ -152,11 +157,14 @@ class Trainer:
 
     def train(self, epoch,):
         print('Training')
+        # self.model.trainable = True
         self.train_epoch()
         with self.train_writer.as_default():
             self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
+        # self.model.trainable = False
+
         self.val_epoch()
         self.model.save_weights(
             os.path.join(self.model_dir, 'latest'),

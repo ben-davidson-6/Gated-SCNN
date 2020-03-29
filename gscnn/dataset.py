@@ -119,7 +119,6 @@ class Dataset:
     def build_validation_dataset(self):
         dataset = self.get_raw_tensor_dataset(train=False)
         dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, train=False), num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
