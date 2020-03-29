@@ -1,5 +1,11 @@
 import tensorflow as tf
 import tensorflow.python.keras.applications.inception_v3
+import gscnn.sync_norm
+
+
+####################################################
+# Build a functional model using tf.keras.applications and modifying the configs
+####################################################
 
 
 def conv2d_sync_bn(x,
@@ -22,7 +28,7 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = tf.keras.layers.experimental.SyncBatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+    x = gscnn.sync_norm.SyncBatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 
@@ -48,7 +54,6 @@ def modify_layers(model):
 
 
 def build_inception():
-
     # monkey patch keras
     original_conv2d_bn = tensorflow.python.keras.applications.inception_v3.conv2d_bn
     tensorflow.python.keras.applications.inception_v3.conv2d_bn = conv2d_sync_bn
@@ -59,25 +64,50 @@ def build_inception():
     model = tf.keras.applications.InceptionV3(
         include_top=False,
         weights='imagenet',
-        input_shape=[None, None, 3])
+        input_shape=[None, None, 3],)
     modify_layers(model)
 
     for layer in model.layers:
         layer.kernel_regularizer = tf.keras.regularizers.l2(l=1e-6)
 
-    # rebuild new inception
     atrous_inception = tf.keras.models.model_from_json(model.to_json())
     atrous_inception.set_weights(model.get_weights())
-    # atrous_inception.summary(line_length=300)
 
     # reset monkey patch
     tensorflow.python.keras.applications.inception_v3 = original_conv2d_bn
     return atrous_inception
 
 
+class AtrousInception(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(AtrousInception, self).__init__(**kwargs)
+        self.backbone = None
+
+    def build(self, input_shape):
+        atrous_inception = build_inception()
+        config = atrous_inception.get_config()
+        config['class_name'] = 'atrous_inception'
+        for n in ['mixed2', 'mixed4', 'mixed7'][::-1]:
+            config['output_layers'].insert(0, [n, 0, 0])
+        self.backbone = tf.keras.models.model_from_config(config)
+        self.backbone.set_weights(atrous_inception.get_weights())
+
+    def call(self, inputs, training=None):
+        s1, s2, s3, s4 = self.backbone(inputs, training=training)
+        return {'s1': s1, 's2': s2, 's3':s3, 's4':s4}
+
+
+def model():
+    atrous = build_inception()
+    import pprint
+    pprint.pprint(atrous.get_config())
+    pprint.pprint(atrous.output_layers)
+
+
 
 if __name__ == '__main__':
     import os
-
+    import numpy as np
     os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    build_inception()
+    a = AtrousInception()
+    print(a(np.random.random([1, 200, 200, 3])))

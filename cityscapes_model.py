@@ -27,9 +27,8 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     data_dir='/media/ben/datasets/cityscapes')
 
 
-strategy = tf.distribute.MirroredStrategy()
+strategy = tf.distribute.experimental.CentralStorageStrategy()
 # strategy = tf.distribute.OneDeviceStrategy('/gpu:0')
-
 
 
 with strategy.scope():
@@ -40,6 +39,7 @@ with strategy.scope():
         n_steps_in_epoch * 230,
         0.000001)
     optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum)
+
     train_dataset = strategy.experimental_distribute_dataset(
         cityscapes_dataset_loader.build_training_dataset())
     validation_dataset = strategy.experimental_distribute_dataset(

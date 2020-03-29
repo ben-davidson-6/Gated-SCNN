@@ -16,3 +16,4 @@ Implementation| road| sidewalk | building | wall | fence | pole | traffic light 
 
 # Todo 
 - Train better model on multiple gpus
+- Currently doesn't work on multiple GPUS, need to reimplemente the inception network as a subclassed keras model. At the moment it does not use sync norm

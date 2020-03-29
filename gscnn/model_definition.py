@@ -1,8 +1,8 @@
 import tensorflow as tf
 from gscnn.atrous_inception import build_inception
+import gscnn.sync_norm
 
-
-BatchNormalization = tf.keras.layers.experimental.SyncBatchNormalization
+BatchNormalization = gscnn.sync_norm.SyncBatchNormalization
 
 
 def resize_to(x, target_t=None, target_shape=None):
@@ -274,6 +274,9 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(InceptionBackbone, self).__init__(**kwargs)
+        self.backbone = None
+
+    def build(self, input_shape):
         backbone = build_inception()
         self.backbone = tf.keras.Model(
             backbone.input,
@@ -307,7 +310,6 @@ class GSCNN(tf.keras.Model):
         mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
         return mag
 
-    # @tf.function(input_signature=[tf.TensorSpec([None, None, None, 3]), tf.TensorSpec([], dtype=tf.bool)])
     def call(self, inputs, training=None, mask=None):
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])

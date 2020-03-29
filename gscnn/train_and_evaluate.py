@@ -47,7 +47,6 @@ class Trainer:
 
         self.best_iou = -1.
 
-    # @tf.function(experimental_relax_shapes=True)
     def calculate_log_tensors(self, logits, label, seg_loss, edge_loss, edge_class_consistency, edge_consistency):
         keep_mask = tf.reduce_any(label == 1., axis=-1)
 
@@ -128,7 +127,7 @@ class Trainer:
             tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
             self.epoch_metrics[k].reset_states()
 
-    @tf.function
+    # @tf.function
     def distributed_train_step(self, im, label, edge_label):
         self.strategy.run(
             self.train_step, args=(im, label, edge_label))
@@ -140,7 +139,7 @@ class Trainer:
                 self.distributed_train_step(im, label, edge_label)
                 self.train_step_counter.assign_add(1)
 
-    @tf.function
+    # @tf.function
     def distributed_forward_pass(self, im, label, edge_label):
         self.strategy.run(
             self.forward_pass, args=(im, label, edge_label))
@@ -157,14 +156,11 @@ class Trainer:
 
     def train(self, epoch,):
         print('Training')
-        # self.model.trainable = True
         self.train_epoch()
         with self.train_writer.as_default():
             self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
-        # self.model.trainable = False
-
         self.val_epoch()
         self.model.save_weights(
             os.path.join(self.model_dir, 'latest'),
