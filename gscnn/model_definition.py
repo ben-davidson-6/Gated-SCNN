@@ -274,9 +274,6 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(InceptionBackbone, self).__init__(**kwargs)
-        self.backbone = None
-
-    def build(self, input_shape):
         backbone = build_inception()
         self.backbone = tf.keras.Model(
             backbone.input,

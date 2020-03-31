@@ -127,7 +127,7 @@ class Trainer:
             tf.summary.scalar('epoch_' + k, self.epoch_metrics[k].result(), step=epoch)
             self.epoch_metrics[k].reset_states()
 
-    # @tf.function
+    @tf.function
     def distributed_train_step(self, im, label, edge_label):
         self.strategy.run(
             self.train_step, args=(im, label, edge_label))
@@ -139,7 +139,7 @@ class Trainer:
                 self.distributed_train_step(im, label, edge_label)
                 self.train_step_counter.assign_add(1)
 
-    # @tf.function
+    @tf.function
     def distributed_forward_pass(self, im, label, edge_label):
         self.strategy.run(
             self.forward_pass, args=(im, label, edge_label))
