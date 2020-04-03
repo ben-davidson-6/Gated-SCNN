@@ -78,31 +78,10 @@ def build_inception():
     return atrous_inception
 
 
-class AtrousInception(tf.keras.layers.Layer):
+class AtrousInception(tf.keras.models.Model):
     def __init__(self, **kwargs):
-        super(AtrousInception, self).__init__(**kwargs)
-        self.backbone = None
-
-    def build(self, input_shape):
-        atrous_inception = build_inception()
-        config = atrous_inception.get_config()
-        config['class_name'] = 'atrous_inception'
-        for n in ['mixed2', 'mixed4', 'mixed7'][::-1]:
-            config['output_layers'].insert(0, [n, 0, 0])
-        self.backbone = tf.keras.models.model_from_config(config)
-        self.backbone.set_weights(atrous_inception.get_weights())
-
-    def call(self, inputs, training=None):
-        s1, s2, s3, s4 = self.backbone(inputs, training=training)
-        return {'s1': s1, 's2': s2, 's3':s3, 's4':s4}
-
-
-def model():
-    atrous = build_inception()
-    import pprint
-    pprint.pprint(atrous.get_config())
-    pprint.pprint(atrous.output_layers)
-
+        inception = build_inception()
+        super(AtrousInception, self).__init__(inputs=inception.inputs, outputs=inception.outputs, **kwargs)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from gscnn.atrous_inception import build_inception
+from gscnn.atrous_inception import build_inception, AtrousInception
 import gscnn.sync_norm
 
 BatchNormalization = gscnn.sync_norm.SyncBatchNormalization
@@ -274,7 +274,7 @@ class FinalLogitLayer(tf.keras.layers.Layer):
 class InceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(InceptionBackbone, self).__init__(**kwargs)
-        backbone = build_inception()
+        backbone = AtrousInception()
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={

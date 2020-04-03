@@ -6,10 +6,10 @@ from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1, 2"
 
-batch_size = 4
-network_input_h = network_input_w = 650
+batch_size = 8
+network_input_h = network_input_w = 680
 max_crop_downsample = 0.4
 colour_aug_factor = 0.1
 mixup_val = None
@@ -29,8 +29,7 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
     data_dir='/media/ben/datasets/cityscapes')
 
 
-# strategy = tf.distribute.experimental.CentralStorageStrategy()
-strategy = tf.distribute.OneDeviceStrategy('/gpu:0')
+strategy = tf.distribute.MirroredStrategy()
 
 
 with strategy.scope():
