@@ -1,6 +1,5 @@
 import tensorflow as tf
 import tensorflow.python.keras.applications.inception_v3
-import gscnn.sync_norm
 
 
 ####################################################
@@ -28,7 +27,7 @@ def conv2d_sync_bn(x,
         padding=padding,
         use_bias=False,
         name=conv_name)(x)
-    x = gscnn.sync_norm.SyncBatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
+    x = tf.keras.layers.experimental.SyncBatchNormalization(axis=bn_axis, scale=False, name=bn_name)(x)
     x = tf.keras.layers.Activation('relu', name=name)(x)
     return x
 

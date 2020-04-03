@@ -1,8 +1,7 @@
 import tensorflow as tf
-from gscnn.atrous_inception import build_inception, AtrousInception
-import gscnn.sync_norm
+from gscnn.atrous_inception import AtrousInception
 
-BatchNormalization = gscnn.sync_norm.SyncBatchNormalization
+BatchNormalization = tf.keras.layers.experimental.SyncBatchNormalization
 
 
 def resize_to(x, target_t=None, target_shape=None):
