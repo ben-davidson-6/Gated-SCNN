@@ -5,6 +5,8 @@ There are some differences between this implementation and the paper:
 - Use InceptionV3 instead of WideResnet
 - Use generalised dice loss instead of cross entropy for the edge segmentation
 
+# Requires
+Only tested on tensorflow==2.2.0rc.
 
 # Model
 InceptionV3 with some downsampling convolutions replaced with atrous convolutions, and some max pooling layers removed to maintain a higher resoltuion. I also replaced the BatchNormalisation with a synchronised batch norm for multi gpu training. See `gscnn.atrous_inception.py`.
@@ -17,4 +19,3 @@ Implementation| road| sidewalk | building | wall | fence | pole | traffic light 
 
 # Todo 
 - Train better model on multiple gpus
-- Currently doesn't work on multiple GPUS, need to reimplemente the inception network as a subclassed keras model. At the moment it does not use sync norm due to `tf.keras.applications` implementing the backend with the functional API.
