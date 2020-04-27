@@ -3,12 +3,23 @@ import os
 import cityscapes.utils
 import cityscapes
 import gscnn.loss as gscnn_loss
+import numpy as np
 from time import time
 
 
 class Trainer:
-    def __init__(self, model,  train_dataset, val_dataset, epochs, optimiser, log_dir, model_dir, l1, l2, l3, l4):
-        self.weights = tf.constant([l1, l2, l3, l4])
+    def __init__(
+            self,
+            model,
+            train_dataset,
+            val_dataset,
+            epochs,
+            optimiser,
+            log_dir,
+            model_dir,
+            loss_weights,
+            accumulation_iterations=None):
+        self.weights = tf.constant(loss_weights)
         self.model = model
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -17,6 +28,18 @@ class Trainer:
         self.train_step_counter = tf.Variable(0, name='step_train', dtype=tf.int64)
         self.val_step_counter = tf.Variable(0, name='step_val', dtype=tf.int64)
         self.training = tf.Variable(True, name='training', dtype=tf.bool)
+
+        # if we want to accumulate
+        if accumulation_iterations is not None:
+            self.model(np.zeros([1, 720, 720, 3],))
+            self.accum_vars = [
+                tf.Variable(tf.zeros_like(tv.read_value()), trainable=False)
+                for tv in self.model.trainable_variables]
+            self.current_iters = tf.Variable(0, trainable=False, dtype=tf.int32)
+        else:
+            self.accum_vars = None
+            self.current_iters = None
+        self.n_accum_iters = accumulation_iterations
 
         train_log_dir = os.path.join(log_dir, 'train')
         val_log_dir = os.path.join(log_dir, 'val')
@@ -77,20 +100,20 @@ class Trainer:
         self.epoch_metrics['loss'].update_state(loss)
         self.epoch_metrics['mean_iou'].update_state(flat_label_masked, flat_pred_label_masked)
 
-        # # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
-        # with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
-        #     label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
-        #
-        #     tf.summary.image(
-        #         'edge_comparison',
-        #         tf.concat([edge_label[..., 1:], shape_head], axis=2),
-        #         step=step,
-        #         max_outputs=1)
-        #     tf.summary.image(
-        #         'label_comparison',
-        #         tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
-        #         step=step,
-        #         max_outputs=1)
+        # these do not work as intended https://github.com/tensorflow/tensorflow/issues/28007
+        with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq*5), 0)):
+            label_image, pred_label_image = self.calculate_images(flat_label, flat_pred_label)
+
+            tf.summary.image(
+                'edge_comparison',
+                tf.concat([edge_label[..., 1:], shape_head], axis=2),
+                step=step,
+                max_outputs=1)
+            tf.summary.image(
+                'label_comparison',
+                tf.concat([tf.cast(im, tf.uint8), label_image, pred_label_image], axis=2),
+                step=step,
+                max_outputs=1)
 
         with tf.summary.record_if(tf.equal(tf.math.mod(step, self.log_freq), 0)):
 
@@ -103,12 +126,28 @@ class Trainer:
 
     def forward_pass(self, im, label, edge_label):
         out = self.model(im, training=self.training)
+
         prediction, shape_head = out[..., :-1], out[..., -1:]
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = gscnn_loss.loss(
             label, prediction, shape_head, edge_label, self.weights)
         self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
         sub_losses = seg_loss, edge_loss, edge_class_consistency, edge_consistency
         return prediction, shape_head, sub_losses
+
+    def apply_gradients(self, gradients):
+        if self.n_accum_iters is not None:
+            for k, grad in enumerate(gradients):
+                self.accum_vars[k].assign_add(grad/self.n_accum_iters)
+            self.current_iters.assign_add(1)
+            if self.current_iters == self.n_accum_iters:
+                self.current_iters.assign(0)
+                self.optimiser.apply_gradients(
+                    zip(self.accum_vars, self.model.trainable_variables))
+                for k, _ in enumerate(self.accum_vars):
+                    self.accum_vars[k].assign(tf.zeros_like(self.accum_vars[k]))
+        else:
+            self.optimiser.apply_gradients(
+                zip(gradients, self.model.trainable_variables))
 
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
@@ -118,7 +157,7 @@ class Trainer:
             regularization_loss = tf.add_n(self.model.losses)
             loss += regularization_loss
         gradients = tape.gradient(loss, self.model.trainable_variables)
-        self.optimiser.apply_gradients(zip(gradients, self.model.trainable_variables))
+        self.apply_gradients(gradients)
         seg_loss, edge_loss, edge_class_consistency, edge_consistency = sub_losses
         self.log_pass(im, label, edge_label, prediction, shape_head, seg_loss, edge_loss, edge_class_consistency, edge_consistency)
 
@@ -128,51 +167,41 @@ class Trainer:
             self.epoch_metrics[k].reset_states()
 
     @tf.function
-    def distributed_train_step(self, im, label, edge_label):
-        self.strategy.run(
-            self.train_step, args=(im, label, edge_label))
-
     def train_epoch(self, ):
-        self.training.assign(True)
-        with self.train_writer.as_default():
-            for im, label, edge_label in self.train_dataset:
-                self.distributed_train_step(im, label, edge_label)
-                self.train_step_counter.assign_add(1)
+        for im, label, edge_label in self.train_dataset:
+            self.train_step(im, label, edge_label)
+            self.train_step_counter.assign_add(1)
 
     @tf.function
-    def distributed_forward_pass(self, im, label, edge_label):
-        self.strategy.run(
-            self.forward_pass, args=(im, label, edge_label))
-
     def val_epoch(self,):
-        self.training.assign(False)
-        with self.val_writer.as_default():
-            for im, label, edge_label in self.val_dataset:
-                self.distributed_forward_pass(im, label, edge_label)
-                self.val_step_counter.assign_add(1)
+        for im, label, edge_label in self.val_dataset:
+            self.forward_pass(im, label, edge_label)
+            self.val_step_counter.assign_add(1)
 
     def make_weight_path(self,):
         return os.path.join(self.model_dir, 'best')
 
     def train(self, epoch,):
         print('Training')
-        self.train_epoch()
+        self.training.assign(True)
         with self.train_writer.as_default():
+            self.train_epoch()
             self.log_metrics(epoch=epoch)
 
     def validate(self, epoch):
-        self.val_epoch()
-        self.model.save_weights(
-            os.path.join(self.model_dir, 'latest'),
-            save_format='tf')
-        if self.epoch_metrics['mean_iou'].result() > self.best_iou:
-            self.model.save_weights(
-                self.make_weight_path(),
-                save_format='tf')
-            self.best_iou = self.epoch_metrics['mean_iou'].result()
+        self.training.assign(False)
         with self.val_writer.as_default():
+            self.val_epoch()
+            self.model.save_weights(
+                os.path.join(self.model_dir, 'latest'),
+                save_format='tf')
+            if self.epoch_metrics['mean_iou'].result() > self.best_iou:
+                self.model.save_weights(
+                    self.make_weight_path(),
+                    save_format='tf')
+                self.best_iou = self.epoch_metrics['mean_iou'].result()
             self.log_metrics(epoch=epoch)
-        print('____ {} ____'.format(self.best_iou))
+            print('____ {} ____'.format(self.best_iou))
 
     def train_loop(self):
         for epoch in range(self.epochs):

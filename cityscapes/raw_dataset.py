@@ -95,13 +95,14 @@ class CityScapesRaw:
         """
         radius = 2
 
-        one_hot_basis = np.eye(cityscapes.N_CLASSES)
+        label[label == 255] = cityscapes.N_CLASSES
+        one_hot_basis = np.eye(cityscapes.N_CLASSES + 1)
         one_hot = one_hot_basis[label]
 
         one_hot_pad = np.pad(one_hot, ((1, 1), (1, 1), (0, 0)), mode='constant', constant_values=0)
         edgemap = np.zeros(one_hot.shape[:-1])
 
-        for i in range(cityscapes.N_CLASSES):
+        for i in range(cityscapes.N_CLASSES + 1):
             dist = distance_transform_edt(one_hot_pad[..., i]) + \
                    distance_transform_edt(1.0 - one_hot_pad[..., i])
             dist = dist[1:-1, 1:-1]
@@ -141,7 +142,7 @@ class CityScapesRaw:
     def get_random_plottable_example(self):
         img, label = self.get_random_val_example()
         edge_label = CityScapesRaw.flat_label_to_edge_label(label)
-        return img, cityscapes.TRAINING_COLOUR_PALETTE[label], edge_label
+        return img, label, edge_label
 
     def plot_random_val(self):
         img, label, edge_label = self.get_random_plottable_example()

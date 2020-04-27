@@ -41,11 +41,11 @@ class Dataset:
         crop_size = tf.cast(crop_size, tf.int32)
         return tf.concat([crop_size, all_input_shape[-1:]], axis=0)
 
-    def crop_images(self, image, label, edge_label, train):
+    def crop_images(self, image, label, edge_label, random_crop=True):
         all_input_tensor = tf.concat([image, label, edge_label], axis=-1)
         tensor_shape = tf.shape(all_input_tensor)
         crop_size = self.crop_size(tensor_shape)
-        if train:
+        if random_crop:
             cropped = tf.image.random_crop(all_input_tensor, crop_size)
         else:
             cropped = tf.image.central_crop(all_input_tensor, 1.0)
@@ -100,14 +100,14 @@ class Dataset:
         image_paths, label_paths, edge_label_paths = self.get_paths(train=train)
         dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths, edge_label_paths))
         if train:
-            dataset = dataset.shuffle(20000)
+            dataset = dataset.shuffle(3000)
         dataset = dataset.map(Dataset.paths_to_tensors, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         return dataset
 
     def build_training_dataset(self):
         dataset = self.get_raw_tensor_dataset(train=True)
         dataset = dataset.map(Dataset.random_flip, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, train=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, random_crop=True), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.map(self.resize_images, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(self.batch_size, drop_remainder=True)
         dataset = dataset.map(self.process_training_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -118,7 +118,6 @@ class Dataset:
 
     def build_validation_dataset(self):
         dataset = self.get_raw_tensor_dataset(train=False)
-        dataset = dataset.map(lambda x, y, z: self.crop_images(x, y, z, train=False), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.batch(2, drop_remainder=True)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)

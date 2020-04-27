@@ -1,7 +1,7 @@
 import tensorflow as tf
-from gscnn.atrous_inception import AtrousInception
+from gscnn.atrous_xception import AtrousXception
 
-BatchNormalization = tf.keras.layers.experimental.SyncBatchNormalization
+BatchNormalization = tf.keras.layers.BatchNormalization
 
 
 def resize_to(x, target_t=None, target_shape=None):
@@ -9,17 +9,17 @@ def resize_to(x, target_t=None, target_shape=None):
         s = tf.shape(target_t)
         target_shape = tf.stack([s[1], s[2]])
 
-    return tf.image.resize(x, target_shape)
+    return tf.image.resize(x, target_shape, )
 
 
 class GateConv(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(GateConv, self).__init__(**kwargs)
-        self.batch_norm_1 = BatchNormalization(scale=False)
+        self.batch_norm_1 = BatchNormalization(scale=False, momentum=0.9)
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
         self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.batch_norm_2 = BatchNormalization()
+        self.batch_norm_2 = BatchNormalization(momentum=0.9)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
@@ -57,14 +57,16 @@ class GatedShapeConv(tf.keras.layers.Layer):
 class ResnetPreactUnit(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
-        self.bn_1 = BatchNormalization(scale=False)
+        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
         self.relu = tf.keras.layers.ReLU()
         self.conv_1 = None
-        self.bn_2 = BatchNormalization(scale=False)
+        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
         self.conv_2 = None
+        self.add = tf.keras.layers.Add()
 
     def build(self, input_shape):
         cs = input_shape[-1]
+
         self.conv_1 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.conv_2 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
@@ -76,7 +78,7 @@ class ResnetPreactUnit(tf.keras.layers.Layer):
         x = self.bn_2(x, training)
         x = self.relu(x)
         x = self.conv_2(x)
-        return x + shortcut
+        return self.add([x, shortcut])
 
 
 class ShapeAttention(tf.keras.layers.Layer):
@@ -151,18 +153,31 @@ class AtrousConvolution(tf.keras.layers.Layer):
         self.kernel_size = kernel_size
         self.out_channels = filters
         self.rate = rate
-        self.kernel = None
+        self.depthwise_kernel = None
+        self.pointwise_kernel = None
+        self.channel_multiplier = 1
 
     def build(self, input_shape):
         in_channels = input_shape[-1]
-        self.kernel = self.add_weight(
+        self.depthwise_kernel = self.add_weight(
             name='kernel',
-            shape=[self.kernel_size, self.kernel_size, in_channels, self.out_channels],
+            shape=[self.kernel_size, self.kernel_size, in_channels, self.channel_multiplier],
+            initializer=tf.keras.initializers.GlorotNormal(),
+            regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.pointwise_kernel = self.add_weight(
+            name='kernel',
+            shape=[1, 1, in_channels*self.channel_multiplier, self.out_channels],
             initializer=tf.keras.initializers.GlorotNormal(),
             regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
-        return tf.nn.atrous_conv2d(x, self.kernel, self.rate, padding='SAME')
+        return tf.nn.separable_conv2d(
+            x,
+            self.depthwise_kernel,
+            self.pointwise_kernel,
+            strides=[1, 1, 1, 1],
+            dilations=[self.rate, self.rate],
+            padding='SAME', )
 
 
 class AtrousPyramidPooling(tf.keras.layers.Layer):
@@ -172,29 +187,29 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.relu = tf.keras.layers.ReLU()
 
         # for final output of backbone
-        self.bn_1 = BatchNormalization(scale=False)
+        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
         self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
-        self.bn_2 = BatchNormalization(scale=False)
+        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
         self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
 
-        self.bn_3 = BatchNormalization(scale=False)
+        self.bn_3 = BatchNormalization(scale=False, momentum=0.9)
         self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
 
-        self.bn_4 = BatchNormalization(scale=False)
+        self.bn_4 = BatchNormalization(scale=False, momentum=0.9)
         self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
 
         # for backbone features
-        self.bn_img = BatchNormalization(scale=False)
+        self.bn_img = BatchNormalization(scale=False, momentum=0.9)
         self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # for shape features
-        self.bn_shape = BatchNormalization(scale=False)
+        self.bn_shape = BatchNormalization(scale=False, momentum=0.9)
         self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # 1x1 reduction convolutions
-        self.conv_reduction_1 = tf.keras.layers.Conv2D(64, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.conv_reduction_2 = tf.keras.layers.Conv2D(256, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_reduction_1 = tf.keras.layers.Conv2D(256, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_reduction_2 = tf.keras.layers.Conv2D(48, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         image_features, shape_features, intermediate_rep = x
@@ -252,11 +267,11 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 class FinalLogitLayer(tf.keras.layers.Layer):
     def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
-        self.bn_1 = BatchNormalization(scale=False)
+        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
         self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.bn_2 = BatchNormalization(scale=False)
+        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
         self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.bn_3 = BatchNormalization(scale=False)
+        self.bn_3 = BatchNormalization(scale=False, momentum=0.9)
 
         self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
@@ -270,21 +285,22 @@ class FinalLogitLayer(tf.keras.layers.Layer):
         return x
 
 
-class InceptionBackbone(tf.keras.layers.Layer):
+class XceptionBackbone(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
-        super(InceptionBackbone, self).__init__(**kwargs)
-        backbone = AtrousInception()
+        super(XceptionBackbone, self).__init__(**kwargs)
+        self.backbone = None
+        backbone = AtrousXception()
         self.backbone = tf.keras.Model(
             backbone.input,
             outputs={
-                's1': backbone.get_layer('mixed2').output,
-                's2': backbone.get_layer('mixed4').output,
-                's3': backbone.get_layer('mixed7').output,
-                's4': backbone.get_layer('mixed10').output,
+                's1': backbone.get_layer('block2_sepconv2_bn').output,
+                's2': backbone.get_layer('block3_sepconv2_bn').output,
+                's3': backbone.get_layer('add_6').output,
+                's4': backbone.get_layer('block14_sepconv2_act').output,
             })
 
     def call(self, inputs, training=None):
-        inputs = tf.keras.applications.inception_v3.preprocess_input(inputs)
+        inputs = tf.keras.applications.xception.preprocess_input(inputs)
         return self.backbone(inputs, training=training)
 
 
@@ -293,12 +309,12 @@ class GSCNN(tf.keras.Model):
         super(GSCNN, self).__init__(**kwargs)
 
         self.n_classes = n_classes
-        self.backbone = InceptionBackbone()
+        self.backbone = XceptionBackbone()
         self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
 
-    def sobel_edges(self, tensor, eps=1e-8):
+    def sobel_edges(self, tensor, eps=1e-12):
         gray = tf.image.rgb_to_grayscale(tensor[..., :3])
         tensor_edge = tf.image.sobel_edges(gray)
         mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
@@ -307,28 +323,36 @@ class GSCNN(tf.keras.Model):
         return mag
 
     def call(self, inputs, training=None, mask=None):
+        # Backbone
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
         backbone_feature_dict = self.backbone(inputs, training=training)
-
         s1, s2, s3, s4 = (backbone_feature_dict['s1'],
                           backbone_feature_dict['s2'],
                           backbone_feature_dict['s3'],
                           backbone_feature_dict['s4'])
         backbone_features = [s1, s2, s3, s4]
+
+        # edge stream
         edge = self.sobel_edges(inputs)
         shape_activations, edge_out = self.shape_stream(
             [[backbone_features, edge], target_shape],
             training=training)
+
+        # aspp
         backbone_activations = backbone_features[-1]
         intermediate_rep = backbone_features[1]
         net = self.atrous_pooling(
             [backbone_activations, shape_activations, intermediate_rep],
             training=training)
+
+        # classify pixels
         net = self.logit_layer(net, training=training)
         net = tf.image.resize(net, target_shape)
         shape_activations = tf.image.resize(shape_activations, target_shape)
-        return tf.concat([net, shape_activations], axis=-1)
+        out = tf.concat([net, shape_activations], axis=-1)
+
+        return out
 
 
 if __name__ == '__main__':

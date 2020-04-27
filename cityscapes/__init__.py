@@ -1,9 +1,8 @@
 from collections import namedtuple
 import numpy as np
 
-
-DATA_DIR = '/home/ben/datasets/cityscapes'
-RESULTS_DIR = '/home/ben/datasets/cityscapes/results'
+DATA_DIR = '/media/ben/datasets/cityscapes'
+RESULTS_DIR = '/media/ben/datasets/cityscapes/results'
 TRAIN = 'train'
 VAL = 'val'
 IMG_SUFFIX = '_leftImg8bit.png'

@@ -2,16 +2,16 @@
 Implementation of [this paper](https://arxiv.org/abs/1907.05740) for semantic segmentation. Written using tensorflow 2.2.0rc, and the model is implemented as a subclassed `tf.keras.Model`. 
 
 There are some differences between this implementation and the paper: 
-- Use InceptionV3 instead of WideResnet
+- Use Xception instead of WideResnet
 - Use generalised dice loss instead of cross entropy for the edge segmentation
 
 # Requires
-Only tested on tensorflow==2.2.0rc.
+Only tested on tensorflow==2.2.0rc. There are definitely things which will not work with earlier versions of tensorflow.
 
 # Model
-InceptionV3 with some downsampling convolutions replaced with atrous convolutions, and some max pooling layers removed to maintain a higher resoltuion. I also replaced the BatchNormalisation with a synchronised batch norm for multi gpu training. See `gscnn.atrous_inception.py`.
+Xception with some downsampling convolutions replaced with atrous convolutions.
 
-# IOU 
+# IOU
 Implementation| road| sidewalk | building | wall | fence | pole | traffic light | traffic sign | vegetation | terrain | sky | person | rider | car | truck | bus | train | motorcycle | bicycle
 | ---         | --- | ---      | ---      | --- | ---   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---|
 | Paper       | 98.3|86.3      |93.3      |55.8 |64     |70.8|75.9|83.1|93|65.1|95.2|85.3|67.9|96|80.8|91.2|83.3|69.6|80.4|

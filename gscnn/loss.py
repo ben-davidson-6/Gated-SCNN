@@ -75,8 +75,7 @@ def weighted_cross_entropy(y_true, y_pred):
     # weights
     counts = tf.reduce_sum(y_true, axis=0, keepdims=True)
     weights = counts/tf.reduce_sum(counts, keepdims=True)
-    weights = 1./weights
-    weights = tf.where(tf.math.is_finite(weights), weights, tf.zeros_like(weights))
+    weights = tf.math.divide_no_nan(1., weights)
 
     # everything here is one hot so this essentially picks the class weight
     # per row of y_true
