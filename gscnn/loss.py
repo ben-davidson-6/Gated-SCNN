@@ -73,9 +73,9 @@ def shape_edge_loss(gt_tensor, pred_tensor, pred_shape_tensor, keep_mask, thresh
 
 def weighted_cross_entropy(y_true, y_pred):
     # weights
-    counts = tf.reduce_sum(y_true, axis=0, keepdims=True)
-    weights = counts/tf.reduce_sum(counts, keepdims=True)
-    weights = tf.math.divide_no_nan(1., weights)
+    rs = tf.reduce_sum(y_true, axis=0, keepdims=True)
+    N = tf.cast(tf.shape(y_true)[0], tf.float32)
+    weights = (N - rs)/N + 1
 
     # everything here is one hot so this essentially picks the class weight
     # per row of y_true
