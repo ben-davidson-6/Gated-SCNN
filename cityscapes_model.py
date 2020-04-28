@@ -31,13 +31,13 @@ cityscapes_dataset_loader = cityscapes.dataset.CityScapes(
 
 
 model = GSCNN(n_classes=cityscapes.N_CLASSES)
-# momentum = 0.9
-# learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
-#     1e-4,
-#     n_steps_in_epoch * 230,
-#     0.000001)
-# optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum)
-optimiser = tf.keras.optimizers.RMSprop()
+momentum = 0.9
+learning_rate_fn = tf.keras.optimizers.schedules.PolynomialDecay(
+    1e-3,
+    n_steps_in_epoch * 230,
+    0.000001)
+optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=momentum)
+# optimiser = tf.keras.optimizers.RMSprop()
 train_dataset = cityscapes_dataset_loader.build_training_dataset()
 validation_dataset = cityscapes_dataset_loader.build_validation_dataset()
 

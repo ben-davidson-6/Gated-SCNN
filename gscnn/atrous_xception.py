@@ -24,6 +24,9 @@ def modify_layers(model):
         model.get_layer(layer_name).strides = (1, 1)
         model.get_layer(layer_name).padding = 'SAME'
 
+    for layer in model.layers:
+        model.get_layer(layer.name).kernel_regularizer = tf.keras.regularizers.l2(l=1e-5)
+
 
 def build_xception():
 

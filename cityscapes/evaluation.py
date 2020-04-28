@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = ""
 import cityscapes
 from cityscapes.raw_dataset import CityScapesRaw
 import gscnn.model_export_and_serve as inference
@@ -8,8 +8,8 @@ import numpy as np
 import imageio
 
 
-out_p = '/home/ben/projects/gated_shape_cnns/final_models/1/'
-weights_path = '/home/ben/projects/gated_shape_cnns/logs/model/best'
+out_p = '/home/ben/projects/gated_shape_cnns/final_models/2/'
+weights_path = '/home/ben/projects/gated_shape_cnns/bestModelSoFar/model/best'
 
 
 def export():
@@ -61,6 +61,6 @@ def build_results():
 
 
 if __name__ == '__main__':
-    # export()
-    # show_single_example()
+    export()
+    show_single_example()
     build_results()
