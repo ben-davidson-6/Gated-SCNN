@@ -76,9 +76,31 @@ def build_results(model_dir):
     cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling.main()
 
 
+def build_video_results(model_dir):
+    model = inference.GSCNNInfer(model_dir)
+    video_dir = '/home/ben/projects/gated_shape_cnns/stuttgart_00'
+    video_results_dir = '/home/ben/projects/gated_shape_cnns/stuttgart_00_label'
+    n = len(os.listdir(video_dir))
+    for k, im_name in enumerate(os.listdir(video_dir)):
+        if k%10 == 0:
+            print(k, n)
+        im_p = os.path.join(video_dir, im_name)
+        target_p = os.path.join(video_results_dir, im_name)
+        img = imageio.imread(im_p)
+        pred, shape = model(img)
+        pred = np.argmax(pred[0], axis=-1)
+        pred = cityscapes.TRAINING_COLOUR_PALETTE[pred]
+
+        result = img*0.5 + pred*0.5
+        result = np.clip(result, 0, 255).astype(np.uint8)
+        shape = (shape[0]*255).astype(np.uint8)
+        result = np.vstack((result, np.tile(shape, (1, 1, 3))))
+        imageio.imsave(target_p[:-3] + 'jpg', result)
+
+
 if __name__ == '__main__':
     out_p = '/home/ben/projects/gated_shape_cnns/github_model'
     # weights_path = '/home/ben/projects/gated_shape_cnns/logs/model/best'
     # export(weights_path, out_p)
     # show_single_example(out_p)
-    build_results(out_p)
+    build_video_results(out_p)

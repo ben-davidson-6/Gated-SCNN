@@ -5,7 +5,7 @@ import sys
 from time import time
 
 import gscnn.loss as gscnn_loss
-from datasets import cityscapes
+import gscnn
 
 
 class Trainer:
@@ -102,7 +102,7 @@ class Trainer:
         self.epoch_metrics = {
             'accuracy': tf.keras.metrics.Accuracy(),
             'loss': tf.keras.metrics.Mean(),
-            'mean_iou': tf.keras.metrics.MeanIoU(num_classes=cityscapes.N_CLASSES)}
+            'mean_iou': tf.keras.metrics.MeanIoU(num_classes=self.model.n_classes)}
 
         # initialise the best iou so far
         # will save best model according to this
@@ -122,9 +122,9 @@ class Trainer:
             label, prediction, shape_head, edge_label, self.loss_weights)
 
         # log to tensorboard
-        flat_label, flat_pred = self.log_images(im, label, edge_label, prediction, shape_head)
+        flat_label, flat_pred, keep_mask = self.log_images(im, label, edge_label, prediction, shape_head)
         loss = self.log_loss(sub_losses)
-        self.update_metrics(label, flat_label, flat_pred, loss)
+        self.update_metrics(flat_label, flat_pred, loss, keep_mask)
         return prediction, shape_head, loss
 
     def apply_gradients(self, gradients):
@@ -218,8 +218,10 @@ class Trainer:
 
     def log_images(self, image, label, edge_label, prediction, shape_head):
         """save some images at the start of every epoch to tensorboard"""
-        colour_array = tf.constant(cityscapes.TRAINING_COLOUR_PALETTE)
+        colour_array = tf.constant(gscnn.COLOUR_PALLETTE)
+        keep_mask = tf.reduce_any(label == 1., axis=-1)
         flat_label = tf.argmax(label, axis=-1)
+        flat_label = tf.where(keep_mask, flat_label, tf.cast(gscnn.N_COLOURS - 1, tf.int64), )
         flat_pred = tf.argmax(prediction, axis=-1)
         with tf.summary.record_if(self.start_of_epoch.value()):
             self.start_of_epoch.assign(False)
@@ -238,7 +240,7 @@ class Trainer:
                 tf.concat([tf.cast(image, tf.uint8), label_image, pred_label_image], axis=2),
                 step=self.epoch,
                 max_outputs=1)
-        return flat_label, flat_pred
+        return flat_label, flat_pred, keep_mask
 
     def log_loss(self, sub_losses):
         """save the various losses to tensorboard and sum them"""
@@ -264,9 +266,8 @@ class Trainer:
                 output_stream=sys.stdout,)
             self.epoch_metrics[k].reset_states()
 
-    def update_metrics(self, label, flat_label, flat_pred, loss):
+    def update_metrics(self, flat_label, flat_pred, loss, keep_mask):
         """calulate epoch level information"""
-        keep_mask = tf.reduce_any(label == 1., axis=-1)
         flat_label_masked = flat_label[keep_mask]
         flat_pred_masked = flat_pred[keep_mask]
         self.epoch_metrics['accuracy'].update_state(flat_label_masked, flat_pred_masked)

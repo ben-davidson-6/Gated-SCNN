@@ -1,6 +1,8 @@
 import tensorflow as tf
+
 import datasets.cityscapes
 import datasets.cityscapes.raw_dataset
+
 from gscnn.dataset import Dataset
 
 
