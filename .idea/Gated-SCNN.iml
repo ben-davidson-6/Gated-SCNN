@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/stuttgart_00" />
     </content>
     <orderEntry type="jdk" jdkName="Remote Python 3.7.5 (sftp://ben@10.12.14.199:22/home/ben/venvs/py37/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
