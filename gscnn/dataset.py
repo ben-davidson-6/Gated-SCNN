@@ -1,5 +1,4 @@
 import tensorflow as tf
-import random
 
 
 class Dataset:
@@ -142,8 +141,8 @@ class Dataset:
         labels, edges = self.flat_to_one_hot(labels, edges)
         images = tf.cond(
             tf.greater(tf.random.uniform([]), 0.5),
-            self.colour_jitter(images),
-            images)
+            lambda: self.colour_jitter(images),
+            lambda: images)
         return images, labels, edges
 
     def process_validation_batch(self, images, labels, edges):
@@ -207,7 +206,7 @@ class Dataset:
         dataset = self.get_raw_tensor_dataset(train=False)
 
         # batch process
-        dataset = dataset.batch(Dataset.VAL_BATCH_SIZE, drop_remainder=True)
+        dataset = dataset.batch(Dataset.VAL_BATCH_SIZE, drop_remainder=False)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 

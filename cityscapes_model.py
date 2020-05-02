@@ -4,7 +4,7 @@ import datasets.cityscapes
 import datasets.cityscapes.dataset
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "3"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
@@ -41,7 +41,7 @@ cityscapes_dataset_loader = datasets.cityscapes.dataset.CityScapes(
     network_input_w,
     max_crop_downsample,
     colour_aug_factor,
-    data_dir=data_dir_with_edge_maps)
+    data_dir=data_dir_with_edge_maps,)
 
 # build the model
 model = GSCNN(n_classes=datasets.cityscapes.N_CLASSES)
