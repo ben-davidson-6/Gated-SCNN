@@ -119,7 +119,11 @@ class Trainer:
 
         # calculate the loss, consists of several components
         sub_losses = gscnn_loss.loss(
-            label, prediction, shape_head, edge_label, self.loss_weights)
+            label,
+            prediction,
+            shape_head,
+            edge_label,
+            self.loss_weights)
 
         # log to tensorboard
         flat_label, flat_pred, keep_mask = self.log_images(im, label, edge_label, prediction, shape_head)

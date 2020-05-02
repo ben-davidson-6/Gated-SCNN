@@ -6,7 +6,7 @@ There are some differences between this implementation and the paper:
 - Only replace the final downsampling layers with atrous convolution (usually you replace both)
 - Use generalised dice loss instead of cross entropy for the edge segmentation
 - I accumulate gradients over iterations as I do not have 8 GPUS!
-- train on a much smaller resolution 5123x513 versus 800x800
+- train on a much smaller resolution 513x513 versus 800x800
 
 ## Performance on CityScapes
 

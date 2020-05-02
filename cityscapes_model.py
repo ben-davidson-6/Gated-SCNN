@@ -4,7 +4,7 @@ import datasets.cityscapes
 import datasets.cityscapes.dataset
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
@@ -54,10 +54,10 @@ trainer = Trainer(
     cityscapes_dataset_loader.build_validation_dataset(),
     epochs=300,
     optimiser=optimiser,
-    log_dir='logs',
-    model_dir='logs/model',
+    log_dir='logsRetrain',
+    model_dir='Retrain/model',
     loss_weights=loss_weights,
-    accumulation_iterations=2)
+    accumulation_iterations=2,)
 trainer.train_loop()
 
 

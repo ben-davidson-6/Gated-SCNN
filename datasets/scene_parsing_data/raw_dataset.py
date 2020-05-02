@@ -5,11 +5,9 @@ import numpy as np
 import multiprocessing
 import sys
 
-from scipy.ndimage.morphology import distance_transform_edt
 from scipy.io import loadmat
 
 import datasets.utils
-
 from datasets import scene_parsing_data
 
 
@@ -52,29 +50,7 @@ def parse_object_info():
 
 ##################################################################
 # Building the edge maps
-##################################################################
-
-
-def flat_label_to_edge_mask(label,):
-    """
-    Converts a segmentation label (H,W) to a binary edgemap (H,W)
-    """
-    radius = 2
-
-    one_hot_basis = np.eye(scene_parsing_data.N_CLASSES)
-    one_hot = one_hot_basis[label]
-
-    one_hot_pad = np.pad(one_hot, ((1, 1), (1, 1), (0, 0)), mode='constant', constant_values=0)
-    edgemap = np.zeros(one_hot.shape[:-1])
-
-    for i in range(scene_parsing_data.N_CLASSES):
-        dist = distance_transform_edt(one_hot_pad[..., i]) + distance_transform_edt(1.0 - one_hot_pad[..., i])
-        dist = dist[1:-1, 1:-1]
-        dist[dist > radius] = 0
-        edgemap += dist
-    edgemap = np.expand_dims(edgemap, axis=-1)
-    edgemap = (edgemap > 0).astype(np.uint8)
-    return edgemap
+#################################################################
 
 
 def edge_path_from_label_path(label_path):
@@ -88,7 +64,7 @@ def edge_path_from_label_path(label_path):
 def label_path_to_edge_saved(label_path):
     edge_path = edge_path_from_label_path(label_path)
     label = imageio.imread(label_path)
-    edge = flat_label_to_edge_mask(label)
+    edge = datasets.utils.flat_label_to_edge_label(label, scene_parsing_data.N_CLASSES)
     imageio.imsave(edge_path, edge)
 
 
@@ -135,4 +111,8 @@ def get_dataset():
 
 
 if __name__ == '__main__':
-    get_dataset()
+    print('creating edge maps takes a long time!')
+    create_edge_labels()
+    print('FINIISHED!')
+    print('your dataset directory looks like')
+    datasets.utils.list_files(scene_parsing_data.DATA_DIR)
