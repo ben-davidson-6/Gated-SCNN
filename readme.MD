@@ -20,10 +20,6 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 # Requires
 Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
 
-# Model
-The backbone network is `tf.keras.application.Xception` with the final downsampling convolution and max pooling layers replaced with the atrous convolution and the identity respectively. Starts from the imagenet weights tensorflow provides.
-
-
 
 # Training on your own data
 If you want to train on your own data then you need to 
