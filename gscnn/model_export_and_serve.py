@@ -1,20 +1,36 @@
-import gscnn.model_definition as model_builder
+import gscnn.model_definition
 import tensorflow as tf
 import imageio
 
 
-def export_model(h, w, c, classes, ckpt_path, out_dir):
-    model = model_builder.GSCNN(classes)
-    input = tf.keras.Input([h, w, c], dtype=tf.uint8)
+def export_model(classes, ckpt_path, out_dir, channels=3):
+    """
+    # todo i can probably get rid of height and width, not sure why they are here in the first place
+    :param h input_height:
+    :param w input_width:
+    :param c channels:
+    :param classes:
+    :param ckpt_path:
+    :param out_dir:
+    :return:
+    """
+
+    # build the model and load the weights
+    model = gscnn.model_definition.GSCNN(classes)
+    input = tf.keras.Input([None, None, channels], dtype=tf.uint8)
     float_input = tf.keras.layers.Lambda(lambda x: tf.cast(x, tf.float32))(input)
     model(float_input, training=False)
     model.load_weights(ckpt_path)
     model.trainable = False
 
+    # build the output with softmax so we get actual
+    # predictions
     output = model(float_input, training=False)
     o = tf.keras.layers.Lambda(tf.nn.softmax)(output[..., :-1])
     m = tf.keras.Model(input, [o, output[..., -1:]])
     m.trainable = False
+
+    # create saved model
     tf.saved_model.save(m, out_dir)
 
 
@@ -43,10 +59,5 @@ class GSCNNInfer:
 
 
 if __name__ == '__main__':
-    import cityscapes
-    import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-    p = '/home/ben/projects/gated_shape_cnns/logs/model/best'
-    out = '/home/ben/projects/gated_shape_cnns/final_models/'
-    export_model(1024, 2048, 3, cityscapes.N_CLASSES, p, out)
+    pass
 

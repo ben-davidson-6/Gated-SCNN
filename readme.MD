@@ -17,8 +17,8 @@ Xception with some downsampling convolutions replaced with atrous convolutions.
 Implementation| mean     | road | sidewalk  | building | wall | fence | pole| traffic light | traffic sign | vegetation | terrain | sky | person | rider | car | truck | bus | train | motorcycle | bicycle|
 | ---         |    ---   | ---  | ---       | ---      | ---  | ---   | --- | ---           | ---          | ---        | ---     | --- | ---    | ---   | --- | ---   | --- | ---   | ---        | ---    |
 | Paper       |   80.8   | 98.3 | 86.3      |93.3      |55.8  |64     |70.8 |75.9           |83.1          |93          |65.1     |95.2 |85.3    |67.9   |96   |80.8   |91.2 |83.3   |69.6        |80.4    |
-| This repo   |   70.8   | 97.2 | 80.0      |90.6      |36.4  |53.1   |60.3 |65.1           |73.1          |90.6        |58.5     |93.2 |78.3    |59.6   |92.5 |59     |73.6 |64.1   |44.3        |74.9    |
+| This repo   |   74.3   | 97.7 | 82.6      |91.2      |48.7  |53.1   |62.2 |64.7           |75.1          |91.9        |62.4     |93.5 |80.5    |60     |94.1 |71.8   |80.5 |66.6   |60.3        |75.3    |
 
-The reason for reduced performance, I think, is I have trained on a smaller resolution (513x513 instead of 800x800) and I have used a smaller batch size (8 instead of 16) as I cannot get access to multiple GPUs.
+The reason for reduced performance, I think, is I have trained on a smaller resolution (513x513 instead of 800x800) and I have used a smaller batch size (8 instead of 16) as I cannot get access to multiple GPUs. I also only replace the final downsampling convolution with an atrous conv, rather than the last two downsampling.
 # Todo 
 - Train better model on multiple gpus

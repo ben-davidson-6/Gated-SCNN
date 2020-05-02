@@ -1,10 +1,20 @@
 import tensorflow as tf
-import tensorflow.python.keras.applications.inception_v3
+
+"""
+    modify tf.keras.applications.Xception so that the last downsampling
+    is replaced with atrous convolution, and we add some regularization
+    as in the original xception paper
+"""
 
 
 def modify_layers(model):
+    """
+    take the tf.keras.Model and modify the parameters of the layers.
+    We will then rebuild the model from json, which will have the updated layers
+    but we should still be able to use the pretrained weights
+    """
 
-    # modify the network
+    # modify the last downsampling convolutions
     # convolutions to atrous
     convs_to_dilate = ['conv2d_3']
     rates = [2]
@@ -16,7 +26,9 @@ def modify_layers(model):
         model.get_layer(layer_name).dilation_rate = rates[k]
         model.get_layer(layer_name).padding = 'SAME'
 
-    # maxpools cannot reduce now
+    # We also need to turn this maxpool into the identity
+    # so that the shapes match up, there is no point
+    # in running a max pool filter but keeping the same size
     maxpools = ['block13_pool']
     for layer_name in maxpools:
         # is set to (2, 2) in original model
@@ -24,11 +36,16 @@ def modify_layers(model):
         model.get_layer(layer_name).strides = (1, 1)
         model.get_layer(layer_name).padding = 'SAME'
 
+    # add some weight decay
     for layer in model.layers:
         model.get_layer(layer.name).kernel_regularizer = tf.keras.regularizers.l2(l=1e-5)
 
 
 def build_xception():
+    """
+    Create an atrous version of tf.keras.applications.Xception
+    which uses the pretrained image net weights
+    """
 
     # build original model, save weights, we will modify the layers
     # so that the dilation rate of various convolutions is larger
@@ -52,8 +69,4 @@ class AtrousXception(tf.keras.models.Model):
 
 
 if __name__ == '__main__':
-    import os
-    import numpy as np
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    build_xception()
-    #20,861,480
+    pass

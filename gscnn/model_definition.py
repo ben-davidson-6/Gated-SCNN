@@ -1,30 +1,40 @@
 import tensorflow as tf
 from gscnn.atrous_xception import AtrousXception
 
-BatchNormalization = tf.keras.layers.BatchNormalization
-
 
 def resize_to(x, target_t=None, target_shape=None):
+    """resize x to shape or target_tensor or target_shape"""
     if target_shape is None:
         s = tf.shape(target_t)
         target_shape = tf.stack([s[1], s[2]])
-
     return tf.image.resize(x, target_shape, )
 
 
 class GateConv(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(GateConv, self).__init__(**kwargs)
-        self.batch_norm_1 = BatchNormalization(scale=False, momentum=0.9)
+        self.batch_norm_1 = tf.keras.layers.BatchNormalization(
+            fused=False,
+            scale=False,
+            momentum=0.9)
         self.conv_1 = None
         self.relu = tf.keras.layers.ReLU()
-        self.conv_2 = tf.keras.layers.Conv2D(1, kernel_size=1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.batch_norm_2 = BatchNormalization(momentum=0.9)
+        self.conv_2 = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.batch_norm_2 = tf.keras.layers.BatchNormalization(
+            fused=False,
+            momentum=0.9)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def build(self, input_shape):
         in_channels = input_shape[-1]
-        self.conv_1 = tf.keras.layers.Conv2D(in_channels, kernel_size=1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_1 = tf.keras.layers.Conv2D(
+            filters=in_channels,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         x = self.batch_norm_1(x, training=training)
@@ -44,7 +54,10 @@ class GatedShapeConv(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         feature_channels = input_shape[0][-1]
-        self.conv_1 = tf.keras.layers.Conv2D(feature_channels, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_1 = tf.keras.layers.Conv2D(
+            feature_channels,
+            1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         feature_map, shape_map = x
@@ -57,18 +70,28 @@ class GatedShapeConv(tf.keras.layers.Layer):
 class ResnetPreactUnit(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
-        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
+        self.bn_1 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
         self.relu = tf.keras.layers.ReLU()
         self.conv_1 = None
-        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
+        self.bn_2 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
         self.conv_2 = None
         self.add = tf.keras.layers.Add()
 
     def build(self, input_shape):
         cs = input_shape[-1]
 
-        self.conv_1 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.conv_2 = tf.keras.layers.Conv2D(cs, 3, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_1 = tf.keras.layers.Conv2D(
+            filters=cs,
+            kernel_size=3,
+            padding='SAME',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_2 = tf.keras.layers.Conv2D(
+            filters=cs,
+            kernel_size=3,
+            padding='SAME',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         shortcut = x
@@ -89,18 +112,40 @@ class ShapeAttention(tf.keras.layers.Layer):
         self.gated_conv_2 = GatedShapeConv()
         self.gated_conv_3 = GatedShapeConv()
 
-        self.shape_reduction_2 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.shape_reduction_3 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.shape_reduction_4 = tf.keras.layers.Conv2D(1, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.shape_reduction_2 = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.shape_reduction_3 = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.shape_reduction_4 = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         self.res_1 = ResnetPreactUnit()
         self.res_2 = ResnetPreactUnit()
         self.res_3 = ResnetPreactUnit()
 
-        self.reduction_conv_1 = tf.keras.layers.Conv2D(32, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.reduction_conv_2 = tf.keras.layers.Conv2D(16, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.reduction_conv_3 = tf.keras.layers.Conv2D(8, 1, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.reduction_conv_4 = tf.keras.layers.Conv2D(1, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_1 = tf.keras.layers.Conv2D(
+            filters=32,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_2 = tf.keras.layers.Conv2D(
+            filters=16,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_3 = tf.keras.layers.Conv2D(
+            filters=8,
+            kernel_size=1,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv_4 = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=None):
@@ -134,7 +179,11 @@ class ShapeStream(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super(ShapeStream, self).__init__(**kwargs)
         self.shape_attention = ShapeAttention()
-        self.reduction_conv = tf.keras.layers.Conv2D(1, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.reduction_conv = tf.keras.layers.Conv2D(
+            filters=1,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
     def call(self, x, training=None):
@@ -187,29 +236,49 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
         self.relu = tf.keras.layers.ReLU()
 
         # for final output of backbone
-        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
-        self.conv_1 = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.bn_1 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.conv_1 = tf.keras.layers.Conv2D(
+            filters=out_channels,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
-        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
-        self.atrous_conv_1 = AtrousConvolution(6, filters=out_channels, kernel_size=3)
+        self.bn_2 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.atrous_conv_1 = AtrousConvolution(rate=6, filters=out_channels, kernel_size=3)
 
-        self.bn_3 = BatchNormalization(scale=False, momentum=0.9)
-        self.atrous_conv_2 = AtrousConvolution(12, filters=out_channels, kernel_size=3)
+        self.bn_3 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.atrous_conv_2 = AtrousConvolution(rate=12, filters=out_channels, kernel_size=3)
 
-        self.bn_4 = BatchNormalization(scale=False, momentum=0.9)
-        self.atrous_conv_3 = AtrousConvolution(18, filters=out_channels, kernel_size=3)
+        self.bn_4 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.atrous_conv_3 = AtrousConvolution(rate=18, filters=out_channels, kernel_size=3)
 
         # for backbone features
-        self.bn_img = BatchNormalization(scale=False, momentum=0.9)
-        self.conv_img = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.bn_img = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.conv_img = tf.keras.layers.Conv2D(
+            filters=out_channels,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # for shape features
-        self.bn_shape = BatchNormalization(scale=False, momentum=0.9)
-        self.conv_shape = tf.keras.layers.Conv2D(out_channels, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.bn_shape = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.conv_shape = tf.keras.layers.Conv2D(
+            filters=out_channels,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
         # 1x1 reduction convolutions
-        self.conv_reduction_1 = tf.keras.layers.Conv2D(256, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.conv_reduction_2 = tf.keras.layers.Conv2D(48, 1, use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_reduction_1 = tf.keras.layers.Conv2D(
+            filters=256,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_reduction_2 = tf.keras.layers.Conv2D(
+            filters=48,
+            kernel_size=1,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         image_features, shape_features, intermediate_rep = x
@@ -267,13 +336,30 @@ class AtrousPyramidPooling(tf.keras.layers.Layer):
 class FinalLogitLayer(tf.keras.layers.Layer):
     def __init__(self, num_classes, **kwargs):
         super(FinalLogitLayer, self).__init__(**kwargs)
-        self.bn_1 = BatchNormalization(scale=False, momentum=0.9)
-        self.conv_1 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.bn_2 = BatchNormalization(scale=False, momentum=0.9)
-        self.conv_2 = tf.keras.layers.Conv2D(256, 3, padding='SAME', use_bias=False, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
-        self.bn_3 = BatchNormalization(scale=False, momentum=0.9)
+        self.bn_1 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.conv_1 = tf.keras.layers.Conv2D(
+            filters=256,
+            kernel_size=3,
+            padding='SAME',
+            use_bias=False,
+            activation=tf.nn.relu,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.bn_2 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
+        self.conv_2 = tf.keras.layers.Conv2D(
+            filters=256,
+            kernel_size=3,
+            padding='SAME',
+            use_bias=False,
+            activation=tf.nn.relu,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.bn_3 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
 
-        self.conv_3 = tf.keras.layers.Conv2D(num_classes, 1, padding='SAME', use_bias=False, kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+        self.conv_3 = tf.keras.layers.Conv2D(
+            filters=num_classes,
+            kernel_size=1,
+            padding='SAME',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
     def call(self, x, training=None):
         x = self.bn_1(x, training=training)
@@ -311,7 +397,7 @@ class GSCNN(tf.keras.Model):
         self.n_classes = n_classes
         self.backbone = XceptionBackbone()
         self.shape_stream = ShapeStream()
-        self.atrous_pooling = AtrousPyramidPooling(256)
+        self.atrous_pooling = AtrousPyramidPooling(out_channels=256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
 
     def sobel_edges(self, tensor, eps=1e-12):
@@ -356,10 +442,5 @@ class GSCNN(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    import os
-    import numpy as np
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = ""
-    g = GSCNN(n_classes=2)
-    g(np.random.random([1, 200, 200, 3]))
+    pass
 

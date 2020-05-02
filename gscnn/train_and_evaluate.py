@@ -1,10 +1,11 @@
 import tensorflow as tf
 import os
-import cityscapes.utils
-import cityscapes
-import gscnn.loss as gscnn_loss
 import numpy as np
+
 from time import time
+
+import gscnn.loss as gscnn_loss
+from datasets import cityscapes
 
 
 class Trainer:
@@ -19,6 +20,18 @@ class Trainer:
             model_dir,
             loss_weights,
             accumulation_iterations=None):
+        """
+
+        :param model GSCNN model:
+        :param train_dataset:
+        :param val_dataset:
+        :param epochs:
+        :param optimiser:
+        :param log_dir:
+        :param model_dir:
+        :param loss_weights:
+        :param accumulation_iterations:
+        """
         self.weights = tf.constant(loss_weights)
         self.model = model
         self.train_dataset = train_dataset
@@ -143,11 +156,14 @@ class Trainer:
                 self.current_iters.assign(0)
                 self.optimiser.apply_gradients(
                     zip(self.accum_vars, self.model.trainable_variables))
+                self.train_step_counter.assign_add(1)
                 for k, _ in enumerate(self.accum_vars):
                     self.accum_vars[k].assign(tf.zeros_like(self.accum_vars[k]))
         else:
             self.optimiser.apply_gradients(
                 zip(gradients, self.model.trainable_variables))
+            self.train_step_counter.assign_add(1)
+
 
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
@@ -170,7 +186,6 @@ class Trainer:
     def train_epoch(self, ):
         for im, label, edge_label in self.train_dataset:
             self.train_step(im, label, edge_label)
-            self.train_step_counter.assign_add(1)
 
     @tf.function
     def val_epoch(self,):
