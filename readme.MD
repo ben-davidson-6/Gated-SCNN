@@ -15,7 +15,7 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 | Paper       |   80.8   | 98.3 | 86.3      |93.3      |55.8  |64     |70.8 |75.9           |83.1          |93          |65.1     |95.2 |85.3    |67.9   |96   |80.8   |91.2 |83.3   |69.6        |80.4    |
 | This repo   |   74.3   | 97.7 | 82.6      |91.2      |48.7  |53.1   |62.2 |64.7           |75.1          |91.9        |62.4     |93.5 |80.5    |60     |94.1 |71.8   |80.5 |66.6   |60.3        |75.3    |
 
-<img src="images/out.gif" alt="stuttgart_02" width="512" height="512"  style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
+<img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
 # Requires
 Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
 
