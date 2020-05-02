@@ -16,7 +16,7 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 | This repo   |   74.3   | 97.7 | 82.6      |91.2      |48.7  |53.1   |62.2 |64.7           |75.1          |91.9        |62.4     |93.5 |80.5    |60     |94.1 |71.8   |80.5 |66.6   |60.3        |75.3    |
 
 <a href="images/out.gif " target="_blank"><img 
-src="images/out.gif" alt="stuttgart_02" width="430" height="215" 
+src="images/out.gif" alt="stuttgart_02" width="512" height="512" 
 border="10" /></a>
 # Requires
 Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
