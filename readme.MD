@@ -8,24 +8,19 @@ There are some differences between this implementation and the paper:
 - I accumulate gradients over iterations as I do not have 8 GPUS!
 - train on a much smaller resolution 5123x513 versus 800x800
 
-## IOU on CityScapes
+## Performance on CityScapes
 
 Implementation| mean     | road | sidewalk  | building | wall | fence | pole| traffic light | traffic sign | vegetation | terrain | sky | person | rider | car | truck | bus | train | motorcycle | bicycle|
 | ---         |    ---   | ---  | ---       | ---      | ---  | ---   | --- | ---           | ---          | ---        | ---     | --- | ---    | ---   | --- | ---   | --- | ---   | ---        | ---    |
 | Paper       |   80.8   | 98.3 | 86.3      |93.3      |55.8  |64     |70.8 |75.9           |83.1          |93          |65.1     |95.2 |85.3    |67.9   |96   |80.8   |91.2 |83.3   |69.6        |80.4    |
 | This repo   |   74.3   | 97.7 | 82.6      |91.2      |48.7  |53.1   |62.2 |64.7           |75.1          |91.9        |62.4     |93.5 |80.5    |60     |94.1 |71.8   |80.5 |66.6   |60.3        |75.3    |
 
+<img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
+<img src="images/stuttgart_00_000000_000036_leftImg8bit.jpg" alt="stuttgart_02" height="512" width="512" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
+
 ## model weights and logs
 
-[Model artifacts](https://drive.google.com/open?id=1wRXyIGUVRws3BJHX-UrNDSZGDzUzgVMx) includes the weights, and training tensorboard logs.
-
-
-### is it realy a repo without a gif?
-
-<img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
-<img src="images/stuttgart_00_000000_000036_leftImg8bit.jpg" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
-<img src="images/stuttgart_00_000000_000541_leftImg8bit.jpg" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
-
+[Model artifacts](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB) includes the weights, and training tensorboard logs.
 
 ## Requires
 Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
