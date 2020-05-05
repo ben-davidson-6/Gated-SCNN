@@ -44,6 +44,4 @@ for im, label, edge_label in self.train_dataset:
 ## Todo 
 - Write tests
 - add ci/cd so look like I know what I am doing
-- retrain with better boundaries as I made a mistake in the model mentioned here, which meant I had some extra boundaries, for example the car shouldnt generate a boundary but I did when building the training data
-- try to get better performance
 
