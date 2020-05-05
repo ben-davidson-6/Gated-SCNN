@@ -5,8 +5,9 @@ There are some differences between this implementation and the paper:
 - Use Xception instead of WideResnet
 - Only replace the final downsampling layers with atrous convolution (usually you replace both)
 - Use generalised dice loss instead of cross entropy for the edge segmentation
-- I accumulate gradients over iterations as I do not have 8 GPUS!
+- I accumulate gradients over iterations as I do not have 8 GPUS! Instead of batch size of 2 synchronised on 8 GPUS i have a batch of size 4 accumulating 4 passes.
 - train on a smaller resolution 700x700 versus 800x800
+
 
 ## Performance on CityScapes
 
