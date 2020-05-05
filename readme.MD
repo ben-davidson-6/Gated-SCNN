@@ -27,8 +27,7 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 
 ## Model weights
 
-[Model weights](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB) includes the weights, and training tensorboard logs.
-
+[Model weights](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB)
 ## Requires
 Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
 
