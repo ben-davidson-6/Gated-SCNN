@@ -16,7 +16,10 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 | Paper       |   80.8   | 98.3 | 86.3      |93.3      |55.8  |64     |70.8 |75.9           |83.1          |93          |65.1     |95.2 |85.3    |67.9   |96   |80.8   |91.2 |83.3   |69.6        |80.4    |
 | This repo   |   77.7   | 97.8 | 83.2      |92.4      |55.8  |59.8   |64.4 |67.6           |77.5          |92.4        |63       |94.9 |81.9    |63     |95   |80.8   |86   |78.3   |65.2        |77.1   |
 
+<div align="center">
 <img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
+</div>
+
 <img src="images/stuttgart_00_000000_000036_leftImg8bit.jpg" alt="stuttgart_02" height="512" width="512" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
 
 ## model weights
