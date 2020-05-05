@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import imageio
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 from datasets.cityscapes.raw_dataset import CityScapesRaw
 from datasets import cityscapes
@@ -99,8 +99,9 @@ def build_video_results(model_dir):
 
 
 if __name__ == '__main__':
-    out_p = '/home/ben/projects/gated_shape_cnns/github_model'
+    out_p = '/home/ben/projects/gated_shape_cnns/bestModel'
     # weights_path = '/home/ben/projects/gated_shape_cnns/logs/model/best'
     # export(weights_path, out_p)
     # show_single_example(out_p)
+    # build_results(out_p)
     build_video_results(out_p)

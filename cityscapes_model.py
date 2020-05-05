@@ -4,15 +4,15 @@ import datasets.cityscapes
 import datasets.cityscapes.dataset
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 from gscnn.model_definition import GSCNN
 from gscnn.train_and_evaluate import Trainer
 
 
 # define dataset parameters
-batch_size = 8
-network_input_h = network_input_w = 513
+batch_size = 4
+network_input_h = network_input_w = 700
 max_crop_downsample = 0.5
 colour_aug_factor = 0.2
 
@@ -55,9 +55,9 @@ trainer = Trainer(
     epochs=300,
     optimiser=optimiser,
     log_dir='logsRetrain',
-    model_dir='Retrain/model',
+    model_dir='logsRetrain/model',
     loss_weights=loss_weights,
-    accumulation_iterations=2,)
+    accumulation_iterations=4,)
 trainer.train_loop()
 
 
