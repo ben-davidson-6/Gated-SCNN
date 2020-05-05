@@ -20,7 +20,9 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 <img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
 </div>
 
-<img src="images/stuttgart_00_000000_000036_leftImg8bit.jpg" alt="stuttgart_02" height="512" width="512" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
+<div align="center">
+<img src="images/stuttgart_00_000000_000036_leftImg8bit.jpg" alt="stuttgart_02" height="1024" width="1024" border="10" />
+</div>
 
 ## model weights
 
