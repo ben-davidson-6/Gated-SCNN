@@ -7,7 +7,6 @@ class Dataset:
         self.get_paths(train) -> image_paths, label_paths, edge_paths
         self.flat_to_one_hot(labels, edges) -> converts flat segmentations (h, w) to one_hot (h, w, c)
     """
-    VAL_BATCH_SIZE = 2
 
     def __init__(
             self,
@@ -16,9 +15,11 @@ class Dataset:
             network_input_w,
             max_crop_downsample,
             colour_aug_factor,
-            debug):
+            debug,
+            val_batch_size=2):
         """
 
+        :param val_batch_size:
         :param batch_size:
         :param network_input_h height of training input:
         :param network_input_w width of training input:
@@ -32,6 +33,7 @@ class Dataset:
         self.max_crop_downsample = max_crop_downsample
         self.colour_aug_factor = colour_aug_factor
         self.debug = debug
+        self.val_batch_size = val_batch_size
 
     @staticmethod
     def image_path_process(path):
@@ -206,7 +208,7 @@ class Dataset:
         dataset = self.get_raw_tensor_dataset(train=False)
 
         # batch process
-        dataset = dataset.batch(Dataset.VAL_BATCH_SIZE, drop_remainder=False)
+        dataset = dataset.batch(self.val_batch_size, drop_remainder=False)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 

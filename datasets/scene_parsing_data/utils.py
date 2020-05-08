@@ -48,4 +48,10 @@ def get_random_example():
 
 
 if __name__ == '__main__':
-    pass
+    import matplotlib.pyplot as plt
+    im, label = get_random_example()
+    plt.subplot(211)
+    plt.imshow(im)
+    plt.subplot(212)
+    plt.imshow(label)
+    plt.show()

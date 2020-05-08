@@ -15,9 +15,15 @@ class CityScapes(Dataset):
             network_input_w,
             max_crop_downsample,
             colour_aug_factor,
-            data_dir,
-            debug=False):
-        super(CityScapes, self).__init__(batch_size, network_input_h, network_input_w, max_crop_downsample, colour_aug_factor, debug)
+            debug,
+            data_dir):
+        super(CityScapes, self).__init__(
+            batch_size,
+            network_input_h,
+            network_input_w,
+            max_crop_downsample,
+            colour_aug_factor,
+            debug)
         self.raw_data = datasets.cityscapes.raw_dataset.CityScapesRaw(data_dir)
 
     def get_paths(self, train):

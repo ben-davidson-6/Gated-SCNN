@@ -69,7 +69,7 @@ def label_path_to_edge_saved(label_path):
 
 
 def create_edge_labels():
-    pool = multiprocessing.Pool(4)
+    pool = multiprocessing.Pool(16)
     train_labels = [os.path.join(scene_parsing_data.TRAINING_ANNOTATION_DIR, x) for x in os.listdir(
         scene_parsing_data.TRAINING_ANNOTATION_DIR)]
     val_labels = [os.path.join(scene_parsing_data.VALIDATION_ANNOTATION_DIR, x) for x in os.listdir(
@@ -111,8 +111,4 @@ def get_dataset():
 
 
 if __name__ == '__main__':
-    print('creating edge maps takes a long time!')
-    create_edge_labels()
-    print('FINIISHED!')
-    print('your dataset directory looks like')
-    datasets.utils.list_files(scene_parsing_data.DATA_DIR)
+    pass

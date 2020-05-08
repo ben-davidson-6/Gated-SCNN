@@ -41,8 +41,8 @@ cityscapes_dataset_loader = datasets.cityscapes.dataset.CityScapes(
     network_input_w,
     max_crop_downsample,
     colour_aug_factor,
-    data_dir=data_dir_with_edge_maps,
-    debug=False)
+    debug=False,
+    data_dir=data_dir_with_edge_maps)
 
 # build the model
 model = GSCNN(n_classes=datasets.cityscapes.N_CLASSES)
