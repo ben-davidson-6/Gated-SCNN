@@ -2,17 +2,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import imageio
 import os
+
+import gscnn.model.model_definition
+
 os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 from datasets.cityscapes.raw_dataset import CityScapesRaw
 from datasets import cityscapes
 
-import gscnn.model_export_and_serve as inference
 
 
 def export(weights_path, out_p):
     """builds a saved model using weights at weights path"""
-    inference.export_model(classes=cityscapes.N_CLASSES, ckpt_path=weights_path, out_dir=out_p, channels=3)
+    gscnn.model.model_definition.export_model(classes=cityscapes.N_CLASSES, ckpt_path=weights_path, out_dir=out_p, channels=3)
 
 
 def show_single_example(model_dir):
@@ -25,7 +27,7 @@ def show_single_example(model_dir):
     colour_label = cityscapes.TRAINING_COLOUR_PALETTE[label]
 
     # predict it!
-    model = inference.GSCNNInfer(model_dir)
+    model = gscnn.model.model_definition.GSCNNInfer(model_dir)
     pred, shape = model(img)
     pred = np.argmax(pred, axis=-1)
     colour_pred = cityscapes.TRAINING_COLOUR_PALETTE[pred]
@@ -54,7 +56,7 @@ def build_results(model_dir):
     lookup_arr = np.zeros([19], dtype=np.uint8)
     for i in range(19):
         lookup_arr[i] = cityscapes.TRAINID_TO_LABEL_ID[i]
-    model = inference.GSCNNInfer(model_dir)
+    model = gscnn.model.model_definition.GSCNNInfer(model_dir)
     data = CityScapesRaw(cityscapes.DATA_DIR)
     paths = data.get_img_paths(split=cityscapes.VAL)
     n = len(paths)
@@ -77,7 +79,7 @@ def build_results(model_dir):
 
 
 def build_video_results(model_dir):
-    model = inference.GSCNNInfer(model_dir)
+    model = gscnn.model.model_definition.GSCNNInfer(model_dir)
     video_dir = '/home/ben/projects/gated_shape_cnns/stuttgart_00'
     video_results_dir = '/home/ben/projects/gated_shape_cnns/stuttgart_00_label'
     n = len(os.listdir(video_dir))
