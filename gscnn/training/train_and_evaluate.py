@@ -4,7 +4,7 @@ import sys
 
 from time import time
 
-import gscnn.loss as gscnn_loss
+import gscnn.training.loss as gscnn_loss
 import gscnn
 
 

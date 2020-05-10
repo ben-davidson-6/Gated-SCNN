@@ -45,6 +45,7 @@ for im, label, edge_label in self.train_dataset:
 ```
 - input needs to be have 3 channels (RGB) but would be easy to make more general, but you'll have to write some code
 - Define training setup, see `cityscapes_model.py`
+- If you do not have have edge labels, but only have segmentations, then you can generate the boundaries from a segmentation using `datasets.utils.flat_label_to_edge_label`. Note you will have to do this before training, it is not part of the online training loop
 
 ## Todo 
 - Write tests

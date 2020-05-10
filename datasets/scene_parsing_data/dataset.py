@@ -4,7 +4,7 @@ import os
 import datasets.scene_parsing_data
 import datasets.scene_parsing_data.raw_dataset
 
-from gscnn.dataset import Dataset
+from gscnn.training.dataset import Dataset
 
 
 class SceneParsing(Dataset):

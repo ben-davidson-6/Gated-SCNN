@@ -1,4 +1,4 @@
-import gscnn.model_definition
+import gscnn.model.model_definition
 import tensorflow as tf
 import imageio
 
@@ -16,7 +16,7 @@ def export_model(classes, ckpt_path, out_dir, channels=3):
     """
 
     # build the model and load the weights
-    model = gscnn.model_definition.GSCNN(classes)
+    model = gscnn.model.model_definition.GSCNN(classes)
     input = tf.keras.Input([None, None, channels], dtype=tf.uint8)
     float_input = tf.keras.layers.Lambda(lambda x: tf.cast(x, tf.float32))(input)
     model(float_input, training=False)

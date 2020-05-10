@@ -24,7 +24,7 @@ def list_files(startpath):
 
 def _label_to_one_hot(label, n_classes):
     """
-        Converts a segmentation mask (H,W) to (K,H,W) where the last dim is a one
+        Converts a segmentation mask (H,W) to (H,W,K) where the last dim is a one
         hot encoding vector
         """
     _mask = [label == (i + 1) for i in range(n_classes)]

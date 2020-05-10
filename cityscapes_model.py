@@ -6,8 +6,8 @@ import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
-from gscnn.model_definition import GSCNN
-from gscnn.train_and_evaluate import Trainer
+from gscnn.model.model_definition import GSCNN
+from gscnn.training.train_and_evaluate import Trainer
 
 
 # define dataset parameters
