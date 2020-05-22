@@ -36,7 +36,7 @@ You have two options
 To use the existing dataset class you need to have all of your images, labels, and edge boundaries prepared ahead of time, and in the following format.
 
 1. First make sure you have the data in the right format
-    - Images are 3 channels `[h, w, 3]` you should be able to use anything that works inside of `tf.io.decode_image`. Note this does not 
+    - Images are 3 channels `[h, w, 3]` you should be able to use anything that works inside of `tf.io.decode_image`. Note this does not include tiffs 
     - Your segmentation should be flat, so of the shape `[h, w, 1]` with the last channel containing the class id and masks should be .png's
     - Edge segmentations should follow the same format as segmentations. If you do not have edge segmentations you can create them with `gated_shape_cnn.training.utils.flat_label_to_edge_label` 
 2. Implement a method in your class which inherits from `gated_shape_cnn.training.Dataset`.
