@@ -5,7 +5,7 @@ import os
 
 import gscnn.model.model_definition
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 from datasets.cityscapes.raw_dataset import CityScapesRaw
 from datasets import cityscapes
