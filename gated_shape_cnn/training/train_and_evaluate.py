@@ -8,6 +8,7 @@ import gated_shape_cnn
 import gated_shape_cnn.training.loss as gscnn_loss
 
 from gated_shape_cnn.training import utils
+from gated_shape_cnn.model import GSCNN
 
 
 class Trainer:
@@ -290,6 +291,42 @@ class Trainer:
 
     def make_weight_path(self,):
         return os.path.join(self.model_dir, 'best')
+
+
+def train_model(
+        n_classes,
+        train_data,
+        val_data,
+        optimiser,
+        epochs,
+        log_dir,
+        model_dir,
+        accum_iterations=4,
+        loss_weights=(1., 20., 1., 1.)):
+
+    # build the model
+    model = GSCNN(n_classes=n_classes)
+
+    # train
+    trainer = Trainer(
+        model,
+        train_data,
+        val_data,
+        epochs=epochs,
+        optimiser=optimiser,
+        log_dir=log_dir,
+        model_dir=model_dir,
+        loss_weights=loss_weights,
+        accumulation_iterations=accum_iterations,)
+    trainer.train_loop()
+
+
+
+
+
+
+
+
 
 
 

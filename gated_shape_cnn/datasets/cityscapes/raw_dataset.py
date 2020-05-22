@@ -5,7 +5,7 @@ import sys
 import glob
 import random
 
-from gated_shape_cnn.datasets.utils import flat_label_to_edge_label
+from gated_shape_cnn.training.utils import flat_label_to_edge_label
 from gated_shape_cnn.datasets import cityscapes
 
 

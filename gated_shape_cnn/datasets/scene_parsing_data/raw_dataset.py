@@ -8,6 +8,7 @@ import sys
 from scipy.io import loadmat
 
 import gated_shape_cnn.datasets.utils
+import gated_shape_cnn.training.utils
 from gated_shape_cnn.datasets import scene_parsing_data
 
 
@@ -64,7 +65,7 @@ def edge_path_from_label_path(label_path):
 def label_path_to_edge_saved(label_path):
     edge_path = edge_path_from_label_path(label_path)
     label = imageio.imread(label_path)
-    edge = gated_shape_cnn.datasets.utils.flat_label_to_edge_label(label, scene_parsing_data.N_CLASSES)
+    edge = gated_shape_cnn.training.utils.flat_label_to_edge_label(label, scene_parsing_data.N_CLASSES)
     imageio.imsave(edge_path, edge)
 
 

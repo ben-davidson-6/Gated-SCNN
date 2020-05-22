@@ -10,6 +10,7 @@ class Dataset:
 
     def __init__(
             self,
+            n_classes,
             batch_size,
             network_input_h,
             network_input_w,
@@ -27,6 +28,7 @@ class Dataset:
         :param colour_aug_factor:
         :param debug setting to true will give you a dataset with 1 element for both train and val:
         """
+        self.n_classes = n_classes
         self.batch_size = batch_size
         self.network_input_h = network_input_h
         self.network_input_w =  network_input_w
@@ -38,7 +40,7 @@ class Dataset:
     @staticmethod
     def image_path_process(path):
         raw = tf.io.read_file(path)
-        image = tf.image.decode_png(raw, channels=3)
+        image = tf.image.decode_image(raw, channels=3)
         return image
 
     @staticmethod
@@ -136,7 +138,9 @@ class Dataset:
         raise NotImplementedError('you must implement this in sub class')
 
     def flat_to_one_hot(self, labels, edges):
-        raise NotImplementedError('You must implement this in sub class')
+        labels = tf.one_hot(labels[..., 0], self.n_classes)
+        edges = tf.one_hot(edges[..., 0], 2)
+        return labels, edges
 
     @staticmethod
     def validate_flat_to_one_hot(labels, edges):

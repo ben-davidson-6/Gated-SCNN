@@ -3,7 +3,7 @@ import tensorflow as tf
 import gated_shape_cnn.datasets.cityscapes
 import gated_shape_cnn.datasets.cityscapes.raw_dataset
 
-from gated_shape_cnn.training.dataset import Dataset
+from gated_shape_cnn.training import Dataset
 
 
 class CityScapes(Dataset):
@@ -18,6 +18,7 @@ class CityScapes(Dataset):
             debug,
             data_dir):
         super(CityScapes, self).__init__(
+            gated_shape_cnn.datasets.cityscapes.N_CLASSES,
             batch_size,
             network_input_h,
             network_input_w,
@@ -27,15 +28,17 @@ class CityScapes(Dataset):
         self.raw_data = gated_shape_cnn.datasets.cityscapes.raw_dataset.CityScapesRaw(data_dir)
 
     def get_paths(self, train):
+        """
+        :param train:
+        :return image_paths, label_paths, edge_paths:
+            image_path[0] -> path to image 0
+            label_paths[0] -> path to semantic seg of image 0
+            edge_paths[0] -> path to edge seg of label 0
+        """
         split = gated_shape_cnn.datasets.cityscapes.TRAIN if train else gated_shape_cnn.datasets.cityscapes.VAL
         paths = self.raw_data.dataset_paths(split)
         image_paths, label_paths, edge_paths = zip(*paths)
         return list(image_paths), list(label_paths), list(edge_paths)
-
-    def flat_to_one_hot(self, labels, edges):
-        labels = tf.one_hot(labels[..., 0], gated_shape_cnn.datasets.cityscapes.N_CLASSES)
-        edges = tf.one_hot(edges[..., 0], 2)
-        return labels, edges
 
 
 if __name__ == '__main__':
