@@ -3,7 +3,7 @@ import numpy as np
 import imageio
 import os
 
-from datasets import scene_parsing_data
+from gated_shape_cnn.datasets import scene_parsing_data
 
 
 def build_legend_info(object_ids):

@@ -5,8 +5,8 @@ import sys
 import glob
 import random
 
-from datasets.utils import flat_label_to_edge_label
-from datasets import cityscapes
+from gated_shape_cnn.datasets.utils import flat_label_to_edge_label
+from gated_shape_cnn.datasets import cityscapes
 
 
 class CityScapesRaw:

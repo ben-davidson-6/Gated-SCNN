@@ -7,8 +7,8 @@ import sys
 
 from scipy.io import loadmat
 
-import datasets.utils
-from datasets import scene_parsing_data
+import gated_shape_cnn.datasets.utils
+from gated_shape_cnn.datasets import scene_parsing_data
 
 
 def matlab_mat_to_numpy():
@@ -64,7 +64,7 @@ def edge_path_from_label_path(label_path):
 def label_path_to_edge_saved(label_path):
     edge_path = edge_path_from_label_path(label_path)
     label = imageio.imread(label_path)
-    edge = datasets.utils.flat_label_to_edge_label(label, scene_parsing_data.N_CLASSES)
+    edge = gated_shape_cnn.datasets.utils.flat_label_to_edge_label(label, scene_parsing_data.N_CLASSES)
     imageio.imsave(edge_path, edge)
 
 
@@ -107,7 +107,7 @@ def get_dataset():
     create_edge_labels()
     print('FINIISHED!')
     print('your dataset directory looks like')
-    datasets.utils.list_files(scene_parsing_data.DATA_DIR)
+    gated_shape_cnn.datasets.utils.list_files(scene_parsing_data.DATA_DIR)
 
 
 if __name__ == '__main__':

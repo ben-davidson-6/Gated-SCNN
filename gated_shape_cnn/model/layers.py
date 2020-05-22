@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from gscnn.model.atrous_xception import AtrousXception
+from gated_shape_cnn.model.atrous_xception import AtrousXception
 
 
 def resize_to(x, target_t=None, target_shape=None):

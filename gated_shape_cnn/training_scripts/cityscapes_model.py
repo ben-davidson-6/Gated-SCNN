@@ -1,11 +1,11 @@
 import tensorflow as tf
 
-import datasets.cityscapes
-import datasets.cityscapes.dataset
+import gated_shape_cnn.datasets.cityscapes
+import gated_shape_cnn.datasets.cityscapes.dataset
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-from gscnn.model.model_definition import GSCNN
-from gscnn.training.train_and_evaluate import Trainer
+from gated_shape_cnn.model.model_definition import GSCNN
+from gated_shape_cnn.training.train_and_evaluate import Trainer
 
 
 # define dataset parameters
@@ -33,7 +33,7 @@ optimiser = tf.keras.optimizers.SGD(learning_rate=learning_rate_fn, momentum=mom
 
 # build the dataset loader
 data_dir_with_edge_maps = '/media/ben/datasets/cityscapes'
-cityscapes_dataset_loader = datasets.cityscapes.dataset.CityScapes(
+cityscapes_dataset_loader = gated_shape_cnn.datasets.cityscapes.dataset.CityScapes(
     batch_size,
     network_input_h,
     network_input_w,
@@ -43,7 +43,7 @@ cityscapes_dataset_loader = datasets.cityscapes.dataset.CityScapes(
     data_dir=data_dir_with_edge_maps)
 
 # build the model
-model = GSCNN(n_classes=datasets.cityscapes.N_CLASSES)
+model = GSCNN(n_classes=gated_shape_cnn.datasets.cityscapes.N_CLASSES)
 
 # train
 trainer = Trainer(

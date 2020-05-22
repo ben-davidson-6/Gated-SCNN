@@ -28,8 +28,9 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 ## Model weights
 
 [Model weights](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB)
-## Requires
-Only tested on tensorflow==2.2.0rc3. There are definitely things which will not work with earlier versions of tensorflow.
+## Install
+Versions of the code are tracked with tags, if you want to install version 1.0.0 then 
+```pip install git+https://github.com/ben-davidson-6/Gated-SCNN.git@1.0.0```
 
 
 ## Training on your own data

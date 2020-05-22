@@ -1,9 +1,8 @@
 import imageio
 import tensorflow as tf
 
-import gscnn.model
-
-from gscnn.model.layers import ShapeStream, AtrousPyramidPooling, FinalLogitLayer, XceptionBackbone
+from gated_shape_cnn.model.layers import (
+    ShapeStream, AtrousPyramidPooling, FinalLogitLayer, XceptionBackbone)
 
 
 class GSCNN(tf.keras.Model):
@@ -67,7 +66,7 @@ def export_model(classes, ckpt_path, out_dir, channels=3):
     """
 
     # build the model and load the weights
-    model = gscnn.model.model_definition.GSCNN(classes)
+    model = GSCNN(classes)
     input = tf.keras.Input([None, None, channels], dtype=tf.uint8)
     float_input = tf.keras.layers.Lambda(lambda x: tf.cast(x, tf.float32))(input)
     model(float_input, training=False)

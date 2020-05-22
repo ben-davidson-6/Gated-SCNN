@@ -4,8 +4,10 @@ import sys
 
 from time import time
 
-import gscnn.training.loss as gscnn_loss
-import gscnn
+import gated_shape_cnn
+import gated_shape_cnn.training.loss as gscnn_loss
+
+from gated_shape_cnn.training import utils
 
 
 class Trainer:
@@ -200,16 +202,24 @@ class Trainer:
             self.save_model()
             self.log_metrics()
 
+    @staticmethod
+    def validate_data(im, label, edge):
+        utils.validate_image_tensor(im)
+        utils.validate_label_tensor(label)
+        utils.validate_edge_tensor(edge)
+
     @tf.function
     def train_epoch(self, ):
         self.start_of_epoch.assign(True)
         for im, label, edge_label in self.train_dataset:
+            Trainer.validate_data(im, label, edge_label)
             self.train_step(im, label, edge_label)
 
     @tf.function
     def val_epoch(self, ):
         self.start_of_epoch.assign(True)
         for im, label, edge_label in self.val_dataset:
+            Trainer.validate_data(im, label, edge_label)
             self.forward_pass(im, label, edge_label)
             self.val_step_counter.assign_add(1)
 
@@ -222,10 +232,10 @@ class Trainer:
 
     def log_images(self, image, label, edge_label, prediction, shape_head):
         """save some images at the start of every epoch to tensorboard"""
-        colour_array = tf.constant(gscnn.COLOUR_PALLETTE)
+        colour_array = tf.constant(gated_shape_cnn.COLOUR_PALLETTE)
         keep_mask = tf.reduce_any(label == 1., axis=-1)
         flat_label = tf.argmax(label, axis=-1)
-        flat_label = tf.where(keep_mask, flat_label, tf.cast(gscnn.N_COLOURS - 1, tf.int64), )
+        flat_label = tf.where(keep_mask, flat_label, tf.cast(gated_shape_cnn.N_COLOURS - 1, tf.int64), )
         flat_pred = tf.argmax(prediction, axis=-1)
         with tf.summary.record_if(self.start_of_epoch.value()):
             self.start_of_epoch.assign(False)

@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-import datasets.cityscapes
-import datasets.cityscapes.raw_dataset
+import gated_shape_cnn.datasets.cityscapes
+import gated_shape_cnn.datasets.cityscapes.raw_dataset
 
-from gscnn.training.dataset import Dataset
+from gated_shape_cnn.training.dataset import Dataset
 
 
 class CityScapes(Dataset):
@@ -24,16 +24,16 @@ class CityScapes(Dataset):
             max_crop_downsample,
             colour_aug_factor,
             debug)
-        self.raw_data = datasets.cityscapes.raw_dataset.CityScapesRaw(data_dir)
+        self.raw_data = gated_shape_cnn.datasets.cityscapes.raw_dataset.CityScapesRaw(data_dir)
 
     def get_paths(self, train):
-        split = datasets.cityscapes.TRAIN if train else datasets.cityscapes.VAL
+        split = gated_shape_cnn.datasets.cityscapes.TRAIN if train else gated_shape_cnn.datasets.cityscapes.VAL
         paths = self.raw_data.dataset_paths(split)
         image_paths, label_paths, edge_paths = zip(*paths)
         return list(image_paths), list(label_paths), list(edge_paths)
 
     def flat_to_one_hot(self, labels, edges):
-        labels = tf.one_hot(labels[..., 0], datasets.cityscapes.N_CLASSES)
+        labels = tf.one_hot(labels[..., 0], gated_shape_cnn.datasets.cityscapes.N_CLASSES)
         edges = tf.one_hot(edges[..., 0], 2)
         return labels, edges
 
