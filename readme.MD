@@ -108,6 +108,23 @@ for im, label, edge_label in dataset:
 ```
 You can then feed these into `train_model` for `train_data` and `val_data`.
 
+## Inference
+If you want to convert your model to saved model format, and then use the 
+```python
+from gated_shape_cnn.model import export_model, GSCNNInfer
+
+# build a saved model
+export_model(
+    classes=num_classes, 
+    ckpt_path='/path/to/weights', 
+    out_dir='/dir/to/save/model/',)
+
+# Helper to use the saved model
+# can resize image if dont want to, or cant run inference on full size
+model = GSCNNInfer('/dir/to/save/model/', resize=None)
+seg, shape_head = model(path_or_imageio_image)
+```
+
 ## Differences to paper
 - Use Xception instead of WideResnet
 - Only replace the final downsampling layers with atrous convolution (usually you replace both)

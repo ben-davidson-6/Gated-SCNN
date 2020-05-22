@@ -90,7 +90,11 @@ class GSCNNInfer:
         self.resize = resize
 
     def path_to_input(self, p):
-        im = imageio.imread(p)
+        if type(p) == str:
+            im = imageio.imread(p)
+        else:
+            im = p
+
         if self.resize is not None:
             im = tf.image.resize(im, self.resize)
         return im
