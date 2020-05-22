@@ -17,7 +17,9 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 
 ## Install
 Versions of the code are tracked with tags, if you want to install version 1.0.0 then do:
+
 ```pip install git+https://github.com/ben-davidson-6/Gated-SCNN.git@1.0.0```
+
 note that you need `tensorflow==2.2.0`
 
 ## Training on your own data
@@ -85,28 +87,28 @@ To use the existing dataset class you need to have all of your images, labels, a
     from gated_shape_cnn.training import train_model
    
     train_model(
-    n_classes=instance_of_subclassed.n_classes,
-    train_data=instance_of_subclassed.build_training_dataset(),
-    val_data=instance_of_subclassed.build_validation_dataset(),
-    optimiser=optimiser,
-    epochs=300,
-    log_dir='./logs',
-    model_dir='./logs/model',
-    accum_iterations=4,
-    loss_weights=(1., 20., 1., 1.))
+        n_classes=instance_of_subclassed.n_classes,
+        train_data=instance_of_subclassed.build_training_dataset(),
+        val_data=instance_of_subclassed.build_validation_dataset(),
+        optimiser=optimiser,
+        epochs=300,
+        log_dir='./logs',
+        model_dir='./logs/model',
+        accum_iterations=4,
+        loss_weights=(1., 20., 1., 1.))
     ```
 ## Building your own dataset
 You do not have to go through the `Dataset` class to use the training loop, all you need to provide are two `tf.data.Dataset`'s which when iterated over are of the form
 ```python
 for im, label, edge_label in dataset:
-    # im         [b, h, w, 3]       tf.float32
+    # im         [b, h, w, 3]       tf.float32 note this is not normalised, as the xception preproccesing is part of the model
     # label      [b, h, w, classes] tf.float32
     # edge_label [b, h, w, 2]       tf.float32
     pass
 ```
 You can then feed these into `train_model` for `train_data` and `val_data`.
 
-## Differences
+## Differences to paper
 - Use Xception instead of WideResnet
 - Only replace the final downsampling layers with atrous convolution (usually you replace both)
 - Use generalised dice loss instead of cross entropy for the edge segmentation
@@ -114,6 +116,8 @@ You can then feed these into `train_model` for `train_data` and `val_data`.
 - train on a smaller resolution 700x700 versus 800x800
 
 ## Todo 
-- Write tests
-- add ci/cd so look like I know what I am doing
+
+- [ ] Write tests
+- [ ] add ci/cd so look like I know what I am doing
+- [ ] build version using keras.fit 
 
