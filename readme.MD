@@ -1,6 +1,7 @@
+<p float="left">
 <img src="https://img.shields.io/github/license/ben-davidson-6/Gated-SCNN" alt="mit license badge"/>
 <img src="https://img.shields.io/github/v/tag/ben-davidson-6/Gated-SCNN" alt="version badge"/>
-
+</p>
 # Gated-Shape CNN for Semantic Segmentation in Tensorflow 2.0
 Implementation of [Gated-Shape CNN for Semantic Segmentation (ICCV 2019)](https://arxiv.org/abs/1907.05740) for semantic segmentation. Started as a way for me to learn `tensorflow==2.2.0`. 
 
