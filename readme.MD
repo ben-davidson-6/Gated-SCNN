@@ -1,5 +1,5 @@
 # Gated-Shape CNN for Semantic Segmentation in Tensorflow 2.0
-Implementation of [Gated-Shape CNN for Semantic Segmentation (ICCV 2019)](https://arxiv.org/abs/1907.05740) for semantic segmentation. Written using tensorflow 2.2.0rc3, and the model is implemented as a subclassed `tf.keras.Model`. 
+Implementation of [Gated-Shape CNN for Semantic Segmentation (ICCV 2019)](https://arxiv.org/abs/1907.05740) for semantic segmentation. Started as a way for me to learn `tensorflow==2.2.0`. 
 
 ## Performance on CityScapes
 [Model weights are here](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB)
