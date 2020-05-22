@@ -109,7 +109,7 @@ for im, label, edge_label in dataset:
 You can then feed these into `train_model` for `train_data` and `val_data`.
 
 ## Inference
-If you want to convert your model to saved model format, and then use the 
+If you want to convert your model to saved model format 
 ```python
 from gated_shape_cnn.model import export_model, GSCNNInfer
 
