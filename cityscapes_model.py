@@ -4,7 +4,7 @@ import datasets.cityscapes
 import datasets.cityscapes.dataset
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 from gscnn.model.model_definition import GSCNN
 from gscnn.training.train_and_evaluate import Trainer
