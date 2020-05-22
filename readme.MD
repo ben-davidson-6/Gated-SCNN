@@ -10,7 +10,6 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 
 [Model weights are here](https://drive.google.com/open?id=1wZRoMeCP25Qcrm33aMjT1Hm6zynS4dsB)
 
-## Some examples
 <div align="center">
 <img src="images/out.gif" alt="stuttgart_02" style="display: block; margin-left: auto; margin-right: auto; width: 50%;" border="10" />
 </div>
