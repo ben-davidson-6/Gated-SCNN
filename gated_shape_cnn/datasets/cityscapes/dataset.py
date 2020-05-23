@@ -42,4 +42,19 @@ class CityScapes(Dataset):
 
 
 if __name__ == '__main__':
-    pass
+    import numpy as np
+    data_dir_with_edge_maps = '/media/ben/datasets/cityscapes'
+    c = CityScapes(4, 700, 700, 0.5, 0.25, False, data_dir_with_edge_maps)
+    y = tf.constant([[0., 1., 1.]])
+    keep_mask = tf.reduce_any(
+        y == 1.,
+        axis=-1)
+    for x, y, z in c.build_training_dataset():
+        print(x.shape, x.dtype)
+        print(y.shape, y.dtype)
+        print(type(y))
+        keep_mask = tf.reduce_any(
+            np.array([1., 1.])==1.,
+            axis=-1)
+        print(z.shape, z.dtype)
+        break
