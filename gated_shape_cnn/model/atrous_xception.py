@@ -12,29 +12,36 @@ def modify_layers(model):
     take the tf.keras.Model and modify the parameters of the layers.
     We will then rebuild the model from json, which will have the updated layers
     but we should still be able to use the pretrained weights
+
+    Originally got this by name, but the name depends on what you call before hand.
+    To get the right layer we get what index each are at using the snippet below
+    and then hardcode these indices to the code
+    # for k, layer in enumerate(model.layers):
+    #     if layer.name == 'conv2d_3':
+    #         print('conv', k)
+    #     if layer.name == 'block13_pool':
+    #         print('pool', k)
+    #     if layer.name == 'add_6':
+    #         print('add', k)
     """
-
     # modify the last downsampling convolutions
-    # convolutions to atrous
-    convs_to_dilate = ['conv2d_3']
-    rates = [2]
-    for k, layer_name in enumerate(convs_to_dilate):
-        # is set to (2, 2) in original model
-        model.get_layer(layer_name).strides = (1, 1)
-
-        # make atrous
-        model.get_layer(layer_name).dilation_rate = rates[k]
-        model.get_layer(layer_name).padding = 'SAME'
+    # we cant get by name as this changes dependening
+    # on what you do before!
+    conv_layer_index = 122
+    # is set to (2, 2) in original model
+    model.layers[conv_layer_index].strides = (1, 1)
+    # make atrous
+    model.layers[conv_layer_index].dilation_rate = 2
+    model.layers[conv_layer_index].padding = 'SAME'
 
     # We also need to turn this maxpool into the identity
     # so that the shapes match up, there is no point
     # in running a max pool filter but keeping the same size
-    maxpools = ['block13_pool']
-    for layer_name in maxpools:
-        # is set to (2, 2) in original model
-        model.get_layer(layer_name).pool_size = (1, 1)
-        model.get_layer(layer_name).strides = (1, 1)
-        model.get_layer(layer_name).padding = 'SAME'
+    pool_layer_index = 123
+    # maxpools = ['block13_pool']
+    model.layers[pool_layer_index].pool_size = (1, 1)
+    model.layers[pool_layer_index].strides = (1, 1)
+    model.layers[pool_layer_index].padding = 'SAME'
 
     # add some weight decay
     for layer in model.layers:
@@ -69,4 +76,4 @@ class AtrousXception(tf.keras.models.Model):
 
 
 if __name__ == '__main__':
-    pass
+    build_xception()

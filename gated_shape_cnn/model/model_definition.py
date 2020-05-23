@@ -37,7 +37,7 @@ class GSCNN(tf.keras.Model):
         # edge stream
         edge = self.sobel_edges(inputs)
         shape_activations, edge_out = self.shape_stream(
-            [[backbone_features, edge], target_shape],
+            [backbone_features, edge],
             training=training)
 
         # aspp
