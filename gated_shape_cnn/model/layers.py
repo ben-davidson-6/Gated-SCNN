@@ -12,10 +12,18 @@ def resize_to(x, target_t=None, target_shape=None):
 
 
 class GateConv(tf.keras.layers.Layer):
+    """
+    x                    [b, h, w, c]
+    x = batch_norm(x)    [b, h, w, c]
+    x = conv(x)          [b, h, w, c]   (1x1) convolution
+    x = relu(x)          [b, h, w, c]
+    x = conv(x)          [b, h, w, 1]   (1x1) convolution no bias
+    x = batch_norm(x)    [b, h, w, 1]
+    x = sigmoid(x)       [b, h, w, 1]
+    """
     def __init__(self, **kwargs):
         super(GateConv, self).__init__(**kwargs)
         self.batch_norm_1 = tf.keras.layers.BatchNormalization(
-            fused=False,
             scale=False,
             momentum=0.9)
         self.conv_1 = None
@@ -26,7 +34,6 @@ class GateConv(tf.keras.layers.Layer):
             use_bias=False,
             kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
         self.batch_norm_2 = tf.keras.layers.BatchNormalization(
-            fused=False,
             momentum=0.9)
         self.sigmoid = tf.keras.layers.Activation(tf.nn.sigmoid)
 
@@ -36,6 +43,9 @@ class GateConv(tf.keras.layers.Layer):
             filters=in_channels,
             kernel_size=1,
             kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (1,)
 
     def call(self, x, training=None):
         x = self.batch_norm_1(x, training=training)
@@ -48,6 +58,13 @@ class GateConv(tf.keras.layers.Layer):
 
 
 class GatedShapeConv(tf.keras.layers.Layer):
+    """
+    features, shape                  [b, h, w, c],       [b, h, w, d]
+    x = concat([features, shape])    [b, h, w, c + d]
+    x = gate_conv(x)                 [b, h, w, 1]
+    x = features*(1 + x)             [b, h, w, c]
+    x = conv(x)                      [b, h, w, c]
+    """
     def __init__(self, **kwargs):
         super(GatedShapeConv, self).__init__(**kwargs)
         self.conv_1 = None
@@ -60,6 +77,9 @@ class GatedShapeConv(tf.keras.layers.Layer):
             1,
             kernel_regularizer=tf.keras.regularizers.l2(l=1e-4))
 
+    def compute_output_shape(self, input_shape):
+        return input_shape[0]
+
     def call(self, x, training=None):
         feature_map, shape_map = x
         features = tf.concat([feature_map, shape_map], axis=-1)
@@ -69,6 +89,9 @@ class GatedShapeConv(tf.keras.layers.Layer):
 
 
 class ResnetPreactUnit(tf.keras.layers.Layer):
+    """
+
+    """
     def __init__(self, **kwargs):
         super(ResnetPreactUnit, self).__init__(**kwargs)
         self.bn_1 = tf.keras.layers.BatchNormalization(scale=False, momentum=0.9)
