@@ -147,4 +147,4 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     c = CityScapesRaw(cityscapes.DATA_DIR)
-    c.build_edge_segs()
+    c.plot_random_val()
