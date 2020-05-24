@@ -87,10 +87,12 @@ class TestEdgeBuilder(tf.test.TestCase):
     def test_flat_label_to_edge_label(self):
         n_classes = 2
         segmentation = np.array([
-            [3, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0,],
-            [0, 0, 0, 1, 3, 0, 0,],
-            [0, 0, 0, 0, 0, 0, 4,],
+            [0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 1, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0,],
+            [0, 0, 0, 0, 0, 0, 0,],
             [0, 0, 0, 0, 0, 0, 0,],
         ], dtype=np.int32)
         edge = np.array([
@@ -99,6 +101,8 @@ class TestEdgeBuilder(tf.test.TestCase):
             [0, 1, 1, 1, 1, 1, 0, ],
             [0, 0, 1, 1, 1, 0, 0, ],
             [0, 0, 0, 1, 0, 0, 0, ],
+            [0, 0, 0, 0, 0, 0, 0, ],
+            [0, 0, 0, 0, 0, 0, 0, ],
         ], dtype=np.int32)
         edge = np.expand_dims(edge, axis=-1)
 

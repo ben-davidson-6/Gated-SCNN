@@ -299,14 +299,15 @@ class TestXceptionBackbone(tf.test.TestCase):
         self.tensor = tf.random.uniform(self.tensor_shape)
 
     def test_output_shape(self):
-        self.xception = gscnn_layers.XceptionBackbone()
-        out = self.xception(self.tensor)
+        xception = gscnn_layers.XceptionBackbone()
+        out = xception(self.tensor)
         self.assertEqual(len(out), 4)
         self.assertEqual(type(out), dict)
 
     def test_batch_norm_doing_something(self):
-        y_training = self.logit_layer(self.tensor, training=True)
-        y_inference = self.logit_layer(self.tensor, training=False)
+        xception = gscnn_layers.XceptionBackbone()
+        y_training = xception(self.tensor, training=True)
+        y_inference = xception(self.tensor, training=False)
         self.assertNotAllClose(y_inference, y_training)
 
 
