@@ -82,11 +82,20 @@ def _segmentation_edge_loss(gt_tensor, logit_tensor, thresh=0.8):
 
     # gt edges and disagreement with pred
     mask_gt = tf.cast((gt_edges > thresh ** 2), tf.float32)
-    contrib_0 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_gt))
+    contrib_0 = tf.boolean_mask(edge_difference, mask_gt)
+
+    contrib_0 = tf.cond(
+        tf.greater(tf.size(contrib_0), 0),
+        lambda: tf.reduce_mean(contrib_0),
+        lambda: 0.)
+
     # vice versa
     mask_pred = tf.stop_gradient(tf.cast((pred_edges > thresh ** 2), tf.float32))
     contrib_1 = tf.reduce_mean(tf.boolean_mask(edge_difference, mask_pred))
-
+    contrib_1 = tf.cond(
+        tf.greater(tf.size(contrib_1), 0),
+        lambda: tf.reduce_mean(contrib_1),
+        lambda: 0.)
     return tf.reduce_mean(0.5 * contrib_0 + 0.5 * contrib_1)
 
 
@@ -150,19 +159,24 @@ def _weighted_cross_entropy(y_true, y_pred, keep_mask):
 
 
 def loss(gt_label, logits, shape_head, edge_label, loss_weights):
-    # tf.debugging.assert_rank(y_true, 4, message='y_true')
-    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
-    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
-    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
+    tf.debugging.assert_shapes([
+        (gt_label,     ('b', 'h', 'w', 'c')),
+        (logits,       ('b', 'h', 'w', 'c')),
+        (shape_head,   ('b', 'h', 'w', 1)),
+        (edge_label,   ('b', 'h', 'w', 2)),
+        (loss_weights, (4,))],)
 
     # in cityscapes we ignore some classes, which means that there will
     # be pixels without any class
     keep_mask = tf.reduce_any(gt_label == 1., axis=-1)
-
+    anything_active = tf.reduce_any(keep_mask)
     # standard weighted cross entropy
     # we weight each class by 1 + (1 - batch_prob_of_class)
     # where we get the prob by counting ground truth pixels
-    seg_loss = _weighted_cross_entropy(gt_label, logits, keep_mask) * loss_weights[0]
+    seg_loss = tf.cond(
+        anything_active,
+        lambda: _weighted_cross_entropy(gt_label, logits, keep_mask) * loss_weights[0],
+        lambda: 0.)
 
     # Generalised dice loss on the edges predicted by the network
     shape_probs = tf.concat([1. - shape_head, shape_head], axis=-1)
@@ -172,6 +186,9 @@ def loss(gt_label, logits, shape_head, edge_label, loss_weights):
     # this ensures that the edges themselves are consistent
     edge_consistency = _segmentation_edge_loss(gt_label, logits) * loss_weights[2]
     # this ensures that the classifcatiomn at the edges is correct
-    edge_class_consistency = _shape_edge_loss(gt_label, logits, shape_head, keep_mask) * loss_weights[3]
+    edge_class_consistency = tf.cond(
+        anything_active,
+        lambda: _shape_edge_loss(gt_label, logits, shape_head, keep_mask) * loss_weights[3],
+        lambda: 0.)
     return seg_loss, edge_loss, edge_class_consistency, edge_consistency
 
