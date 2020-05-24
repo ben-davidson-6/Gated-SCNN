@@ -11,6 +11,31 @@ def resize_to(x, target_t=None, target_shape=None):
     return tf.image.resize(x, target_shape, )
 
 
+def _all_close(x, y, rtol=1e-5, atol=1e-8):
+    return tf.reduce_all(tf.abs(x - y) <= tf.abs(y) * rtol + atol)
+
+
+def gradient_mag(tensor, from_rgb=False, eps=1e-12):
+    if from_rgb:
+        tensor = tf.image.rgb_to_grayscale(tensor[..., :3])
+    tensor_edge = tf.image.sobel_edges(tensor)
+
+    def _normalised_mag():
+        mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
+        mag = tf.math.sqrt(mag)
+        mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
+        return mag
+
+    z = tf.zeros_like(tensor)
+
+    normalised_mag = tf.cond(
+        _all_close(tensor_edge, tf.zeros_like(tensor_edge)),
+        lambda: z,
+        _normalised_mag)
+
+    return normalised_mag
+
+
 class GateConv(tf.keras.layers.Layer):
     """
     x                    [b, h, w, c]

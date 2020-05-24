@@ -45,6 +45,54 @@ class TestResize(unittest.TestCase):
         self.assertEqual(out_t.get_shape()[1:-1], target_t.get_shape()[1:-1])
 
 
+class TestGradMag(tf.test.TestCase):
+
+    def test_correct_gradients(self):
+        tensor = tf.constant([
+            [0., 0, 1, 0., 0.],
+            [0., 0, 1, 0., 0.],
+        ])[None, :, :, None]
+        out = gscnn_layers.gradient_mag(tensor)
+        should_out = tf.constant([
+            [0., 1, 0, 1., 0.],
+            [0., 1, 0, 1., 0.],
+        ])[None, :, :, None]
+        self.assertEqual(out.get_shape(), tf.TensorShape([1, 2, 5, 1]))
+        self.assertAllClose(out, should_out)
+
+        tensor = tf.constant([
+            [0., 0.],
+            [0., 0.],
+            [1., 1.],
+            [0., 0.],
+            [0., 0.],
+        ])[None, :, :, None]
+        out = gscnn_layers.gradient_mag(tensor)
+        should_out = tf.constant([
+            [0., 0.],
+            [1., 1.],
+            [0., 0.],
+            [1., 1.],
+            [0., 0.],
+        ])[None, :, :, None]
+        self.assertEqual(out.get_shape(), tf.TensorShape([1, 5, 2, 1]))
+        self.assertAllClose(out, should_out)
+
+    def test_empty_image(self):
+        tensor = tf.constant([
+            [0., 0, 0, 0., 0.],
+            [0., 0, 0, 0., 0.],
+        ])[None, :, :, None]
+        out = gscnn_layers.gradient_mag(tensor)
+        should_out = tf.constant([
+            [0., 0, 0, 0., 0.],
+            [0., 0, 0, 0., 0.],
+        ])[None, :, :, None]
+        self.assertEqual(out.get_shape(), tf.TensorShape([1, 2, 5, 1]))
+        print(out)
+        self.assertAllClose(out, should_out)
+
+
 class TestGateConv(tf.test.TestCase):
     def setUp(self):
         self.tensor = tf.random.uniform([1, 16, 16, 3])
@@ -255,12 +303,11 @@ class TestXceptionBackbone(tf.test.TestCase):
         out = self.xception(self.tensor)
         self.assertEqual(len(out), 4)
         self.assertEqual(type(out), dict)
-        # self.assertEqual(out.get_shape(), self.tensor_shape[:-1] + (self.num_classes,))
 
-    # def test_batch_norm_doing_something(self):
-    #     y_training = self.logit_layer(self.tensor, training=True)
-    #     y_inference = self.logit_layer(self.tensor, training=False)
-    #     self.assertNotAllClose(y_inference, y_training)
+    def test_batch_norm_doing_something(self):
+        y_training = self.logit_layer(self.tensor, training=True)
+        y_inference = self.logit_layer(self.tensor, training=False)
+        self.assertNotAllClose(y_inference, y_training)
 
 
 if __name__ == '__main__':

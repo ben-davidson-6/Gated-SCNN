@@ -1,7 +1,8 @@
 import tensorflow as tf
+from gated_shape_cnn.model.layers import gradient_mag
 
 
-def _generalised_dice(y_true, y_pred, eps=0.0):
+def _generalised_dice(y_true, y_pred, eps=0.0, from_logits=True):
     """
     :param y_true [b, h, w, c]:
     :param y_pred [b, h, w, c]:
@@ -10,8 +11,10 @@ def _generalised_dice(y_true, y_pred, eps=0.0):
 
     see https://www.nature.com/articles/s41598-018-26350-3
     """
+
     # [b, h, w, classes]
-    y_pred = tf.nn.softmax(y_pred)
+    if from_logits:
+        y_pred = tf.nn.softmax(y_pred)
     y_true_shape = tf.shape(y_true)
 
     # [b, h*w, classes]
@@ -32,19 +35,6 @@ def _generalised_dice(y_true, y_pred, eps=0.0):
     dices = 1. - 2. * numerators / denom
     dices = tf.where(tf.math.is_finite(dices), dices, tf.zeros_like(dices))
     return tf.reduce_mean(dices)
-
-
-def _edge_mag(tensor, eps=1e-8):
-    """
-    - get image gradient magnitudes and normalise by largest mag
-    - for an n channel image you get dx,dy for all n channels, so will
-      have n magnitudes
-    """
-    tensor_edge = tf.image.sobel_edges(tensor)
-    mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
-    mag = tf.math.sqrt(mag)
-    mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
-    return mag
 
 
 def _gumbel_softmax(logits, eps=1e-8, tau=1.):
@@ -77,11 +67,11 @@ def _segmentation_edge_loss(gt_tensor, logit_tensor, thresh=0.8):
     logit_tensor = _gumbel_softmax(logit_tensor)
 
     # normalised image gradients to give us edges
-    # images will be [b, h, w, 1]
-    gt_edges = _edge_mag(gt_tensor)
-    pred_edges = _edge_mag(logit_tensor)
+    # images will be [b, h, w, n_classes]
+    gt_edges = gradient_mag(gt_tensor)
+    pred_edges = gradient_mag(logit_tensor)
 
-    # [b, h*W]
+    # [b*h*w, n]
     gt_edges = tf.reshape(gt_edges, [-1, tf.shape(gt_edges)[-1]])
     pred_edges = tf.reshape(pred_edges, [-1, tf.shape(gt_edges)[-1]])
 
@@ -160,6 +150,10 @@ def _weighted_cross_entropy(y_true, y_pred, keep_mask):
 
 
 def loss(gt_label, logits, shape_head, edge_label, loss_weights):
+    # tf.debugging.assert_rank(y_true, 4, message='y_true')
+    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
+    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
+    # tf.debugging.assert_rank(y_pred, 4, message='y_true')
 
     # in cityscapes we ignore some classes, which means that there will
     # be pixels without any class
