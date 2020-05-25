@@ -1,5 +1,4 @@
 import tensorflow as tf
-import unittest
 import gated_shape_cnn.training.loss as gscnn_loss
 import numpy as np
 import random

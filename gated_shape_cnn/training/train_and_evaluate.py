@@ -14,7 +14,7 @@ from gated_shape_cnn.model import GSCNN
 class Trainer:
     LOG_FREQ = 200
     """
-    Custom training loop in tensorflow 2.0. The loop is as follows:
+    Custom training loop in tensorflow 2. The loop is as follows:
     for n epochs
         train_epoch
             for batch in epoch
@@ -127,12 +127,14 @@ class Trainer:
             shape_head,
             edge_label,
             self.loss_weights)
+        return prediction, shape_head, sub_losses
 
+    def log_pass(self, im, label, edge_label, prediction, shape_head, sub_losses):
         # log to tensorboard
         flat_label, flat_pred, keep_mask = self.log_images(im, label, edge_label, prediction, shape_head)
         loss = self.log_loss(sub_losses)
         self.update_metrics(flat_label, flat_pred, loss, keep_mask)
-        return prediction, shape_head, loss
+        return loss
 
     def apply_gradients(self, gradients):
         self.train_step_counter.assign_add(1)
@@ -157,7 +159,8 @@ class Trainer:
 
     def train_step(self, im, label, edge_label):
         with tf.GradientTape() as tape:
-            _, _, loss = self.forward_pass(im, label, edge_label)
+            prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label)
+            loss = self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
             regularization_loss = tf.add_n(self.model.losses)
             loss += regularization_loss
         gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -221,7 +224,8 @@ class Trainer:
         self.start_of_epoch.assign(True)
         for im, label, edge_label in self.val_dataset:
             Trainer.validate_data(im, label, edge_label)
-            self.forward_pass(im, label, edge_label)
+            prediction, shape_head, sub_losses = self.forward_pass(im, label, edge_label)
+            self.log_pass(im, label, edge_label, prediction, shape_head, sub_losses)
             self.val_step_counter.assign_add(1)
 
     #######################################################################

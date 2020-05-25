@@ -19,7 +19,6 @@ class Dataset:
             debug,
             val_batch_size=2):
         """
-
         :param val_batch_size:
         :param batch_size:
         :param network_input_h height of training input:
@@ -39,7 +38,7 @@ class Dataset:
 
     @staticmethod
     def image_path_process(path):
-        raw = tf.io.read_file(path)
+        raw = tf.io.read_file(path,)
         image = tf.image.decode_image(raw, channels=3)
         return image
 
@@ -68,6 +67,7 @@ class Dataset:
         crop_size = tf.cast(crop_size, tf.int32)
 
         crop = tf.concat([crop_size, all_input_shape[-1:]], axis=0)
+        crop = tf.where(crop == 0, 1, crop)
         return crop
 
     def crop_images(self, image, label, edge_label):
@@ -106,6 +106,8 @@ class Dataset:
         return image, label, edge_label
 
     def colour_jitter(self, image,):
+        if self.colour_aug_factor == 0.:
+            return image
         image = tf.image.random_brightness(image, self.colour_aug_factor)
         image = tf.image.random_saturation(
             image, 1. - self.colour_aug_factor, 1 + self.colour_aug_factor)
@@ -145,31 +147,16 @@ class Dataset:
     @staticmethod
     def validate_flat_to_one_hot(labels, edges):
         # make sure they are of shape [b, h, w, c]
-        label_rank = tf.rank(labels)
-        edges_rank = tf.rank(edges)
-        rank_string = '{} from flat_to_one_hot should have rank 4 but saw {}'
-        tf.assert_equal(
-            label_rank,
-            4,
-            message=rank_string.format('labels', label_rank))
-        tf.assert_equal(
-            edges_rank,
-            4,
-            message=rank_string.format('edges', edges_rank))
+        tf.debugging.assert_rank(labels, 4, 'label')
+        tf.debugging.assert_rank(labels, 4, 'edges')
 
         # make sure have convincing number of channels
+        tf.debugging.assert_shapes([
+            (edges, ('b', 'h', 'w', 2)),
+            (labels, ('b', 'h', 'w', 'c')),
+        ])
         label_channels = tf.shape(labels)[-1]
-        edges_channels = tf.shape(edges)[-1]
-        label_channel_str = 'labels from flat_to_one_hot should have at least 2 channels saw {}'.format(label_channels)
-        edge_channel_str = 'edges from flat_to_one_hot should have 2 channels saw {}'.format(edges_channels)
-        tf.assert_equal(
-            edges_channels,
-            2,
-            message=edge_channel_str)
-        tf.assert_greater(
-            label_channels,
-            1,
-            message=label_channel_str)
+        tf.assert_greater(label_channels, 1)
 
     def process_training_batch(self, images, labels, edges):
         """batch convert to one hot and apply colour jitter"""
