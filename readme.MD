@@ -22,7 +22,9 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 
 ## Install
 Project uses semantic versioning Maj.Min.Fix, see the badge for most recent version.
+
 ```pip install git+https://github.com/ben-davidson-6/Gated-SCNN.git@Maj.Min.Fix```
+
 Note that this **will not work with tensorflow < 2.2.0**
 
 
