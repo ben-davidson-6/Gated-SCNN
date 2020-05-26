@@ -21,11 +21,10 @@ Implementation| mean     | road | sidewalk  | building | wall | fence | pole| tr
 </div>
 
 ## Install
-Versions of the code are tracked with tags, if you want to install version 1.0.0 then do:
+Project uses semantic versioning Maj.Min.Fix, see the badge for most recent version.
+```pip install git+https://github.com/ben-davidson-6/Gated-SCNN.git@Maj.Min.Fix```
+Note that this **will not work with tensorflow < 2.2.0**
 
-```pip install git+https://github.com/ben-davidson-6/Gated-SCNN.git@1.0.0```
-
-note that you need `tensorflow==2.2.0`
 
 ## Training on your own data
 ### Just give me the network!
@@ -34,6 +33,8 @@ import gated_shape_cnn.model
 number_classes = 10
 # will create a tf.keras.model.Model
 model = gated_shape_cnn.model.GSCNN(n_classes=number_classes)
+output = model(some_input)
+logits, shape_head = output[..., :-1], output[..., -1:]
 ```
 ### Using the full training loop
 You have two options
