@@ -89,7 +89,6 @@ class TestGradMag(tf.test.TestCase):
             [0., 0, 0, 0., 0.],
         ])[None, :, :, None]
         self.assertEqual(out.get_shape(), tf.TensorShape([1, 2, 5, 1]))
-        print(out)
         self.assertAllClose(out, should_out)
 
 
