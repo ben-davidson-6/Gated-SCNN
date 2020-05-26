@@ -134,12 +134,16 @@ seg, shape_head = model(path_or_imageio_image)
 - Use Xception instead of WideResnet
 - Only replace the final downsampling layers with atrous convolution (usually you replace both)
 - Use generalised dice loss instead of cross entropy for the edge segmentation
-- I accumulate gradients over iterations as I do not have 8 GPUS! Instead of batch size of 2 synchronised on 8 GPUS I have a batch of size 4 accumulating 4 passes
+
+For the results presented above, in comparison to the paper I:
+- Accumulate gradients over iterations as I do not have 8 GPUS! Instead of batch size of 2 synchronised on 8 GPUS I have a batch of size 4 accumulating 4 passes
 - train on a smaller resolution 700x700 versus 800x800
 
 ## Todo 
 
-- [ ] Write tests
-- [ ] add ci/cd so look like I know what I am doing
+- [x] Write tests
+    - [x] easy unit tests
+    - [ ] unit testing training loop
+- [x] add ci/cd so look like I know what I am doing
 - [ ] build version using keras.fit 
 
