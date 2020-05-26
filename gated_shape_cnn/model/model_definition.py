@@ -2,7 +2,7 @@ import imageio
 import tensorflow as tf
 
 from gated_shape_cnn.model.layers import (
-    ShapeStream, AtrousPyramidPooling, FinalLogitLayer, XceptionBackbone)
+    gradient_mag, ShapeStream, AtrousPyramidPooling, FinalLogitLayer, XceptionBackbone)
 
 
 class GSCNN(tf.keras.Model):
@@ -14,14 +14,6 @@ class GSCNN(tf.keras.Model):
         self.shape_stream = ShapeStream()
         self.atrous_pooling = AtrousPyramidPooling(out_channels=256)
         self.logit_layer = FinalLogitLayer(self.n_classes)
-
-    def sobel_edges(self, tensor, eps=1e-12):
-        gray = tf.image.rgb_to_grayscale(tensor[..., :3])
-        tensor_edge = tf.image.sobel_edges(gray)
-        mag = tf.reduce_sum(tensor_edge ** 2, axis=-1) + eps
-        mag = tf.math.sqrt(mag)
-        mag /= tf.reduce_max(mag, axis=[1, 2], keepdims=True)
-        return mag
 
     def call(self, inputs, training=None, mask=None):
         # Backbone
@@ -35,9 +27,9 @@ class GSCNN(tf.keras.Model):
         backbone_features = [s1, s2, s3, s4]
 
         # edge stream
-        edge = self.sobel_edges(inputs)
+        edge = gradient_mag(inputs, from_rgb=True)
         shape_activations, edge_out = self.shape_stream(
-            [[backbone_features, edge], target_shape],
+            [backbone_features, edge],
             training=training)
 
         # aspp
@@ -110,3 +102,9 @@ class GSCNNInfer:
         im = self.image_to_input(im)
         class_pred, shape_head = self.model(im, training=False)
         return class_pred.numpy(), shape_head.numpy()
+
+
+if __name__ == '__main__':
+    import numpy as np
+    a = GSCNN(n_classes=2)
+    a(np.random.random([1, 100, 100, 3]))
