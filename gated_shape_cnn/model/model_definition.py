@@ -102,3 +102,9 @@ class GSCNNInfer:
         im = self.image_to_input(im)
         class_pred, shape_head = self.model(im, training=False)
         return class_pred.numpy(), shape_head.numpy()
+
+
+if __name__ == '__main__':
+    import numpy as np
+    a = GSCNN(n_classes=2)
+    a(np.random.random([1, 100, 100, 3]))

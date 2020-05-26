@@ -27,11 +27,10 @@ def gradient_mag(tensor, from_rgb=False, eps=1e-12):
         return mag
 
     z = tf.zeros_like(tensor)
-
     normalised_mag = tf.cond(
         _all_close(tensor_edge, tf.zeros_like(tensor_edge)),
         lambda: z,
-        _normalised_mag)
+        _normalised_mag, name='potato')
 
     return normalised_mag
 

@@ -40,6 +40,7 @@ class Dataset:
     def image_path_process(path):
         raw = tf.io.read_file(path,)
         image = tf.image.decode_image(raw, channels=3)
+        image.set_shape([None, None, None])
         return image
 
     @staticmethod
@@ -229,7 +230,7 @@ class Dataset:
         dataset = self.get_raw_tensor_dataset(train=False)
 
         # batch process
-        dataset = dataset.batch(self.val_batch_size, drop_remainder=False)
+        dataset = dataset.batch(self.val_batch_size, drop_remainder=True)
         dataset = dataset.map(self.process_validation_batch, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
