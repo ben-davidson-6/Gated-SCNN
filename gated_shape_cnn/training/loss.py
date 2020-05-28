@@ -170,6 +170,7 @@ def loss(gt_label, logits, shape_head, edge_label, loss_weights):
     # be pixels without any class
     keep_mask = tf.reduce_any(gt_label == 1., axis=-1)
     anything_active = tf.reduce_any(keep_mask)
+
     # standard weighted cross entropy
     # we weight each class by 1 + (1 - batch_prob_of_class)
     # where we get the prob by counting ground truth pixels

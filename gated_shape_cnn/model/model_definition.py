@@ -16,6 +16,19 @@ class GSCNN(tf.keras.Model):
         self.logit_layer = FinalLogitLayer(self.n_classes)
 
     def call(self, inputs, training=None, mask=None):
+
+        # we need to repeat the input if batch size is 1
+        # because in training mode a batch size of 1 will create
+        # nans, see:
+        # https://github.com/tensorflow/tensorflow/issues/34062
+        one_item_batch = tf.shape(inputs)[0] == 1
+        if training is None:
+            training = True
+        inputs = tf.cond(
+            tf.logical_and(one_item_batch, training),
+            lambda: tf.tile(inputs, (2, 1, 1, 1)),
+            lambda: inputs)
+
         # Backbone
         input_shape = tf.shape(inputs)
         target_shape = tf.stack([input_shape[1], input_shape[2]])
@@ -45,6 +58,10 @@ class GSCNN(tf.keras.Model):
         shape_activations = tf.image.resize(shape_activations, target_shape)
         out = tf.concat([net, shape_activations], axis=-1)
 
+        out = tf.cond(
+            one_item_batch,
+            lambda: out[:1],
+            lambda: out)
         return out
 
 
