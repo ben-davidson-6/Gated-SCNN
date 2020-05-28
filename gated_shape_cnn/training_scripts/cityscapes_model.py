@@ -47,7 +47,7 @@ train_model(
     log_dir='./logs',
     model_dir='./logs/model',
     accum_iterations=4,
-    loss_weights=(1., 20., 1., 1.)
+    loss_weights=(1., 1., 1., 1.)
 )
 
 
