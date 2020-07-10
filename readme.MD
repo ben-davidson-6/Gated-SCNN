@@ -1,5 +1,4 @@
 <p float="left">
-<img src="https://img.shields.io/github/license/ben-davidson-6/Gated-SCNN" alt="mit license badge"/>
 <img src="https://img.shields.io/github/v/tag/ben-davidson-6/Gated-SCNN?label=version" alt="version badge"/>
 <img src="https://img.shields.io/github/workflow/status/ben-davidson-6/Gated-SCNN/Python application/master" alt="version badge"/>
 </p>
