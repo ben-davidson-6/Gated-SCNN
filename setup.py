@@ -8,7 +8,7 @@ setup(
     packages=find_packages(),
     # package_dir={"": "src"},
     install_requires=[
-        'tensorflow-gpu==2.2.0',
+        'tensorflow-gpu==2.6.4',
         'imageio',
         'scipy',
     ],
